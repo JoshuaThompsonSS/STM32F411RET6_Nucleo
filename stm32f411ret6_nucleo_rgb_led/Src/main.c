@@ -32,7 +32,6 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-#include "gpio.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -49,22 +48,54 @@
 void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
+/* Function prototypes -----------------------------------------------*/
 
-/* USER CODE END PFP */
+//Initialize the board debug led as output
+void initLED(void){
+	//enable GPIOA peripheral clock
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	//enable GPIOA pin 5 as output
+	GPIO_InitTypeDef  GPIO_InitStruct;
+	GPIO_InitStruct.Pin = GPIO_PIN_5;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-/* USER CODE BEGIN 0 */
+}
 
-/* USER CODE END 0 */
+//Initialize button as interrupt
+void initButtonInterrupt(void){
+	//enable GPIOA peripheral clock
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	//configure GPIOA pin 13 as interrupt with falling edge sensitivity
+	GPIO_InitTypeDef  GPIO_InitStruct;
+	GPIO_InitStruct.Mode =  GPIO_MODE_IT_FALLING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Pin = GPIO_PIN_13;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+	//interrupt enable EXTI line 13
+	/* Enable and set Button EXTI Interrupt to the lowest priority */
+	HAL_NVIC_SetPriority((IRQn_Type)(EXTI15_10_IRQn), 0x0F, 0x00);
+	HAL_NVIC_EnableIRQ((IRQn_Type)(EXTI15_10_IRQn));
+
+}
+
+//wait function
+void wait_sec(int sec){
+	HAL_Delay(sec*1000);
+}
+
+//toggle led
+void toggleLED(void){
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+}
+
 
 int main(void)
 {
 
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
@@ -72,22 +103,20 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
-  /* Initialize all configured peripherals */
+  /* Initialize LED*/
+  initLED();
 
-  /* USER CODE BEGIN 2 */
+  /* Initialize Button Interrupt */
+  initButtonInterrupt();
 
-  /* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-  /* USER CODE END WHILE */
-
-  /* USER CODE BEGIN 3 */
+	  //Interrupt will toggle led (GPIOA 5) when button on GPIOC 13 is pressed
+	  //Interrupt handler is EXTI15_10_IRQHandler (defined in stm32f4xx_it.c) and calls the led toggle code
+	  //when the interrupt is generated on GPIOC pin 13 (button)
 
   }
-  /* USER CODE END 3 */
 
 }
 
@@ -126,7 +155,11 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == GPIO_PIN_13){
+		GPIOA->ODR ^= GPIO_PIN_5;
+	}
+}
 /* USER CODE END 4 */
 
 #ifdef USE_FULL_ASSERT

@@ -32,12 +32,16 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_tim.h"
+
 
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef TimHandle;
+TIM_OC_InitTypeDef PwmConfig;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -48,7 +52,10 @@
 void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
+
+
 /* Function prototypes -----------------------------------------------*/
+
 
 //Initialize the board debug led as output
 void initLED(void){
@@ -82,6 +89,60 @@ void initButtonInterrupt(void){
 
 }
 
+//initialize timer used for pwm (timer 2 ch 2)
+void initLEDPwm(void){
+	//enable GPIOA peripheral clock
+	//
+		__HAL_RCC_GPIOA_CLK_ENABLE(); //RCC->AHB1ENR |= 1;
+		//enable GPIOA pin 5 as output
+
+		GPIO_InitTypeDef  GPIO_InitStruct;
+		GPIO_InitStruct.Pin = GPIO_PIN_5;
+		GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+		GPIO_InitStruct.Pull = GPIO_NOPULL;//GPIO_PULLDOWN;
+		GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
+		GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
+		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+}
+
+
+void initPwmTimer(void){
+	//gpio init
+
+	//initLEDPwm(); called by the HAL_TIM_PWM_MspInit() defined at end of file
+	//timer init
+
+	TimHandle.Instance = TIM2;
+	//timer freq = 84MHz / (prescaler + )
+	TimHandle.Init.Period = 8400; //period of 1 hz if prescaler = 1000
+	TimHandle.Init.Prescaler = 1000;
+	//pwm freq = period / timer_freq
+	TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	TimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+	TimHandle.Init.RepetitionCounter = 0;
+
+	//configure TIM mode for pwm function generator
+	//HAL_TIM_PWM_MspInit(&TimHandle);
+	HAL_TIM_PWM_Init(&TimHandle);
+	//enable timer clocks
+	//__TIM2_CLK_ENABLE(); called in HAL_TIM_PWM_MspInit()
+
+
+	PwmConfig.OCMode = TIM_OCMODE_PWM1;
+	PwmConfig.OCFastMode = TIM_OCFAST_ENABLE;
+	PwmConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
+	PwmConfig.Pulse = 4000;
+	HAL_TIM_PWM_ConfigChannel(&TimHandle, &PwmConfig, TIM_CHANNEL_1);
+
+
+	//Activate the TIM peripheral
+	HAL_TIM_PWM_Start(&TimHandle, TIM_CHANNEL_1); //start pwm on port b ch 3
+
+}
+
+
+
 //wait function
 void wait_sec(int sec){
 	HAL_Delay(sec*1000);
@@ -95,8 +156,6 @@ void toggleLED(void){
 
 int main(void)
 {
-
-
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
@@ -104,10 +163,13 @@ int main(void)
   SystemClock_Config();
 
   /* Initialize LED*/
-  initLED();
+  //initLED();
 
   /* Initialize Button Interrupt */
-  initButtonInterrupt();
+  //initButtonInterrupt();
+
+  /* Initialize PWM on TIM2 Channel 2 */
+  initPwmTimer();
 
 
   while (1)
@@ -115,6 +177,7 @@ int main(void)
 	  //Interrupt will toggle led (GPIOA 5) when button on GPIOC 13 is pressed
 	  //Interrupt handler is EXTI15_10_IRQHandler (defined in stm32f4xx_it.c) and calls the led toggle code
 	  //when the interrupt is generated on GPIOC pin 13 (button)
+
 
   }
 
@@ -155,6 +218,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *htim){
+	//enable timer clocks
+	__TIM2_CLK_ENABLE();
+	//init led for pwm output
+	initLEDPwm();
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == GPIO_PIN_13){
 		GPIOA->ODR ^= GPIO_PIN_5;
@@ -184,10 +254,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -33,6 +33,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
+#include "rgb_led.h"
 
 
 /* USER CODE BEGIN Includes */
@@ -47,6 +48,7 @@ TIM_OC_InitTypeDef PwmConfig;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE END PV */
+
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);

@@ -171,7 +171,9 @@ int main(void)
   //initButtonInterrupt();
 
   /* Initialize PWM on TIM2 Channel 2 */
-  initPwmTimer();
+  //initPwmTimer();
+  RGB_LED_InitLEDConfig(&RGB1_RedTimHandle, &RGB1_RedPwmConfig, RGB1_RED_TIM_REG, RGB1_RED_TIM_CH);
+  RGB_LED_StartLED(&RGB1_RedTimHandle, RGB1_RED_TIM_CH);
 
 
   while (1)
@@ -220,12 +222,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *htim){
-	//enable timer clocks
-	__TIM2_CLK_ENABLE();
-	//init led for pwm output
-	initLEDPwm();
-}
+
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == GPIO_PIN_13){

@@ -73,9 +73,12 @@ void RGB_LED_Init()
 *********************************************************************************** */
 void RGB_LED_InitLEDConfig(TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef * PwmConfigPtr, TIM_TypeDef * TimReg, uint32_t TimChannel){
 	TimHandlePtr->Instance = TimReg;
-	//timer freq = 84MHz / (prescaler + )
-	TimHandlePtr->Init.Period = 8400; //period of 1 hz if prescaler = 1000
-	TimHandlePtr->Init.Prescaler = 1000;
+	//timer_freq = system clock / (prescaler + 1)
+	//Period(Cycles) = Pwm Period * timer_freq = timer_freq / pwm freq  --- where Pwm period = 1 / pwm freq
+	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT; // not including the + 1 ...just because! I may have reasons
+	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
+	TimHandlePtr->Init.Period = timer_period;
+	TimHandlePtr->Init.Prescaler = RGB_PRESCALER_DFLT;
 	//pwm freq = period / timer_freq
 	TimHandlePtr->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	TimHandlePtr->Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -92,7 +95,7 @@ void RGB_LED_InitLEDConfig(TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef 
 	PwmConfigPtr->OCMode = TIM_OCMODE_PWM1;
 	PwmConfigPtr->OCFastMode = TIM_OCFAST_ENABLE;
 	PwmConfigPtr->OCPolarity = TIM_OCPOLARITY_HIGH;
-	PwmConfigPtr->Pulse = 1000;
+	PwmConfigPtr->Pulse = RGB_PWMDUTY_DFLT * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
 	if(HAL_TIM_PWM_ConfigChannel(TimHandlePtr, PwmConfigPtr, TimChannel) != HAL_OK)
 	{
 		/* Configuration Error */

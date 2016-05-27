@@ -12,7 +12,24 @@
 /* LED PINS
  * Add PIN sets here as long as they can be mapped to a TIMER (ex: TIM2_CH1)
  * */
+
+//Alternate Function number when user tries to assing pin that does not have an AF assigned
 #define AF_ERROR			0xFF
+
+//Use these defaults for the STM32F4 TIM PWM generation
+#define RGB_PRESCALER_DFLT	1000 //timer_freq = system clock / (prescaler + 1) -- ex: timer_freq = 84MHz / (1000 + 1) = 84KHz
+
+/* PWM Frequency = 1 / Period
+ * Period = Period(Cycles)  / timer_freq -- Period(cycles) is the value used in the TIM register config
+ * So Period(Cycles) = Period * timer_freq
+ */
+#define RGB_PWMFREQ_DFLT		1000 //1000 Hz (1KHz)
+
+/* Duty_Cycle
+ * Pwm Duty Cycle = 100% * Pulse(Cycles) / Period(Cycles)
+ * So Pulse(Cycles) = Duty_Cycle * Period(Cycles) -- use Pulse value in the TIM register PWM Config
+*/
+#define RGB_PWMDUTY_DFLT	50 //50% -- this is the percentage of time that the GPIO output is HIGH out of the total PWM period
 /* RGB LED 1 Config Data */
 
 //RGB LED 1 PIN Mapping - so far we are just testing with 1 RGB LED but can add more assuming we have enough TIMER ports available

@@ -73,6 +73,7 @@ void RGB_LED_EnterShutdown(void);
 void RGB_LED_SetColor(uint16_t red, uint16_t green, uint16_t blue);
 void RGB_LED_ErrorHandler(void);
 uint8_t RGB_LED_GetLED_AF(GPIO_TypeDef * LED_PORT, uint16_t LED_PIN);
+void RGB_LED_UpdateDutyCycle(uint32_t duty_cycle_percent, TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef * PwmConfigPtr);
 
 //RGB LED 1 TIM Handlers for PWM Generator
 //RED

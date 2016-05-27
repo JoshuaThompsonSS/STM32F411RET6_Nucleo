@@ -79,7 +79,7 @@ void RGB_LED_InitLEDConfig(TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef 
 	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
 	TimHandlePtr->Init.Period = timer_period;
 	TimHandlePtr->Init.Prescaler = RGB_PRESCALER_DFLT;
-	//pwm freq = period / timer_freq
+	//pwm freq = timer period / timer_freq = 1000 Hz (or whatever is defined by RGB_PWMFREQ_DFLT)
 	TimHandlePtr->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	TimHandlePtr->Init.CounterMode = TIM_COUNTERMODE_UP;
 	TimHandlePtr->Init.RepetitionCounter = 0;
@@ -348,3 +348,31 @@ uint8_t RGB_LED_GetLED_AF(GPIO_TypeDef * LED_PORT, uint16_t LED_PIN){
 	return af_num;
 }
 
+
+
+
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_UpdateDutyCycle()
+** DESCRIPTION: Updates the Duty Cycle /  Pulse value of the pwm used in the timer capture / compare register
+** 				This essentially changed the voltage that the LED pin sees
+** 				Ex: if duty cycle is 50% then voltage seen by pin is 50% of VCC
+** NOTE:		Might need to only allow this during certain interrupt periods ... blocking?
+ *
+*********************************************************************************** */
+void RGB_LED_UpdateDutyCycle(uint32_t duty_cycle_percent, TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef * PwmConfigPtr){
+	//timer_freq = system clock / (prescaler + 1)
+	//Period(Cycles) = Pwm Period * timer_freq = timer_freq / pwm freq  --- where Pwm period = 1 / pwm freq
+
+	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT; // not including the + 1 ...just because! I may have reasons
+	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
+	//TODO: validate the duty cycle is a unsigned int value between 0 and 100
+	//update the duty cycle value in the pwm structure (this does not update the pwm, it's just so record our new duty cycle value)
+	PwmConfigPtr->Pulse = duty_cycle_percent * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
+
+	//Now update the duty cycle by updating the pulse value, the timer will update the duty cycle after it completes its most recent period capture compare
+	//TIMx->CCR1 = OC_Config->Pulse
+	TimHandlePtr->Instance->CCR1 = PwmConfigPtr->Pulse; //now we use the value that was recorded in the pwm structure
+
+	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?
+
+}

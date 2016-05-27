@@ -174,13 +174,19 @@ int main(void)
   //initPwmTimer();
   RGB_LED_InitLEDConfig(&RGB1_RedTimHandle, &RGB1_RedPwmConfig, RGB1_RED_TIM_REG, RGB1_RED_TIM_CH);
   RGB_LED_StartLED(&RGB1_RedTimHandle, RGB1_RED_TIM_CH);
-
+  uint32_t duty_cycle_percent = 0;
 
   while (1)
   {
 	  //Interrupt will toggle led (GPIOA 5) when button on GPIOC 13 is pressed
 	  //Interrupt handler is EXTI15_10_IRQHandler (defined in stm32f4xx_it.c) and calls the led toggle code
 	  //when the interrupt is generated on GPIOC pin 13 (button)
+
+	  //continuously dim and then brighten LED
+	  wait_sec(1); //update duty cycle until 100% then restart
+	  RGB_LED_UpdateDutyCycle(duty_cycle_percent, &RGB1_RedTimHandle, &RGB1_RedPwmConfig);
+	  duty_cycle_percent += 10;
+	  if(duty_cycle_percent >= 100){duty_cycle_percent = 0;} //restart after reaching 100% brightness
 
 
   }

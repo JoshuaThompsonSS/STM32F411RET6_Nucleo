@@ -1,5 +1,5 @@
 /*
- * RGB_LED.h
+ * rgb_led.h
  *
  */
 
@@ -9,9 +9,20 @@
 #include "stm32f4xx_hal_tim.h"
 
 
+/*
+ * ------Constants and Variable Declarations
+*/
+
+/*
+ * RGB LED Count
+ */
+
+#define RGB_LED_COUNT	1 //make this 2 when we are ready to test 2 rgb leds
+#define RGB_LED1_IDX	0
+
 /* LED PINS
  * Add PIN sets here as long as they can be mapped to a TIMER (ex: TIM2_CH1)
- * */
+ */
 
 //Alternate Function number when user tries to assing pin that does not have an AF assigned
 #define AF_ERROR			0xFF
@@ -28,11 +39,13 @@
 /* Duty_Cycle
  * Pwm Duty Cycle = 100% * Pulse(Cycles) / Period(Cycles)
  * So Pulse(Cycles) = Duty_Cycle * Period(Cycles) -- use Pulse value in the TIM register PWM Config
-*/
+ */
 #define RGB_PWMDUTY_DFLT	50 //50% -- this is the percentage of time that the GPIO output is HIGH out of the total PWM period
 /* RGB LED 1 Config Data */
 
-//RGB LED 1 PIN Mapping - so far we are just testing with 1 RGB LED but can add more assuming we have enough TIMER ports available
+/*
+ * RGB LED 1 PIN Mapping - so far we are just testing with 1 RGB LED but can add more assuming we have enough TIMER ports available
+ */
 //RED
 #define RGB1_RED_AF				GPIO_AF1_TIM2//GPIO_AF1_TIM1
 #define RGB1_RED_PORT			GPIOA
@@ -56,26 +69,10 @@
 #define RGB1_BLUE_AF			GPIO_AF2_TIM3
 #define RGB1_BLUE_TIMCLK_EN()	__TIM3_CLK_ENABLE()
 
-
-void RGB_LED_Init(void);
-void RGB_LED_InitLEDConfig(TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef * PwmConfigPtr, TIM_TypeDef * TimReg, uint32_t TimChannel);
-void RGB_LED_InitLEDPwm(GPIO_InitTypeDef * GPIO_InitStruct, GPIO_TypeDef * LED_PORT, uint16_t LED_PIN);
-void RGB_LED_Start(void);
-void RGB_LED_StartLED(TIM_HandleTypeDef * TimHandlePtr, uint32_t TimChannel);
-void RGB_LED_Stop(void);
-void RGB_LED_StopLED(TIM_HandleTypeDef * TimHandlePtr, uint32_t TimChannel);
-void RGB_LED_DeInit(void);
-void RGB_LED_Reset(void);
-void RGB_LED_PowerDown(void);
-void RGB_LED_SetConfig(void); //TODO: need config struct
-void RGB_LED_ExitShutdown(void);
-void RGB_LED_EnterShutdown(void);
-void RGB_LED_SetColor(uint16_t red, uint16_t green, uint16_t blue);
-void RGB_LED_ErrorHandler(void);
-uint8_t RGB_LED_GetLED_AF(GPIO_TypeDef * LED_PORT, uint16_t LED_PIN);
-void RGB_LED_UpdateDutyCycle(uint32_t duty_cycle_percent, TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef * PwmConfigPtr);
-
-//RGB LED 1 TIM Handlers for PWM Generator
+/*
+ *RGB LED TIMER PWM Config Handlers and Structures
+ */
+//RGB LED 1
 //RED
 TIM_HandleTypeDef RGB1_RedTimHandle;
 TIM_OC_InitTypeDef RGB1_RedPwmConfig;
@@ -89,6 +86,60 @@ GPIO_InitTypeDef  GPIO_RGB1_GreenInitStruct;
 TIM_HandleTypeDef RGB1_BlueTimHandle;
 TIM_OC_InitTypeDef RGB1_BluePwmConfig;
 GPIO_InitTypeDef  GPIO_RGB1_BlueInitStruct;
+
+/*
+ * RGB LED Color Config Structure and Collections
+ */
+
+//holds individual color config
+typedef struct rgb_led_color_conf_t {
+	GPIO_TypeDef * 		port; //GPIOx
+	uint16_t	   		pin; //GPIOx_Pinx
+	uint32_t	   		timChannel; //TIMx_Channelx
+	TIM_TypeDef *  		timReg; //TIMx
+	uint8_t		   		afNum; //Alternate Function Number
+	TIM_HandleTypeDef 	timHandle;
+	TIM_OC_InitTypeDef 	pwmConfig;
+	GPIO_InitTypeDef  	gpioInitStruct;
+
+} rgb_led_color_conf_t;
+
+//hold config of red, green and blue configs
+typedef struct rgb_led_conf_t {
+	rgb_led_color_conf_t red;
+	rgb_led_color_conf_t green;
+	rgb_led_color_conf_t blue;
+} rgb_led_conf_t;
+
+//array of rgb led configs
+rgb_led_conf_t RgbLedConfigs[RGB_LED_COUNT];
+
+
+
+/*
+ * --------Function Declarations
+ */
+void RGB_LED_InitConfigs(int rgbnum);
+void RGB_LED_Init(int rgbnum);
+void RGB_LED_InitPWMConfig(rgb_led_color_conf_t * colorConfig);
+void RGB_LED_InitLEDPwm(rgb_led_color_conf_t * colorConfig);
+void RGB_LED_Start(int rgbnum);
+void RGB_LED_StartLED(rgb_led_color_conf_t * colorConfig);
+void RGB_LED_Stop(int rgbnum);
+void RGB_LED_StopLED(rgb_led_color_conf_t * colorConfig);
+void RGB_LED_DeInit(void);
+void RGB_LED_Reset(void);
+void RGB_LED_PowerDown(void);
+void RGB_LED_SetConfig(void); //TODO: need config struct
+void RGB_LED_ExitShutdown(void);
+void RGB_LED_EnterShutdown(void);
+void RGB_LED_SetColor(uint16_t red, uint16_t green, uint16_t blue);
+void RGB_LED_ErrorHandler(void);
+void RGB_LED_UpdateDutyCycle(uint32_t duty_cycle_percent, rgb_led_color_conf_t * colorConfig);
+void RGB_LED_EnTimClk(TIM_TypeDef * TimRegx);
+void RGB_LED_EnGpioClk(GPIO_TypeDef * port);
+
+
 
 
 

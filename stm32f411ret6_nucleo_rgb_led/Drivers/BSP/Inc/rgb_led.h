@@ -35,8 +35,8 @@
  */
 
 #define RGB_LED_COUNT	1 //make this 2 when we are ready to test 2 rgb leds
-#define FUNC_LED_NUM	0 //functional RGB LED number
-//#define DEC_LED_NUM		1 //decorative RGB LED number
+#define FUNC_RGB_LED_NUM	0 //functional RGB LED number
+//#define DEC_RGB_LED_NUM		1 //decorative RGB LED number
 
 /* LED PINS
  * Add PIN sets here as long as they can be mapped to a TIMER (ex: TIM2_CH1)
@@ -161,8 +161,10 @@ void RGB_LED_PowerDown(int rgbnum);
 void RGB_LED_ExitShutdown(void);
 void RGB_LED_EnterShutdown(void);
 void RGB_LED_SetColor(int rgbnum, rgb_color_t * color);
+void RGB_LED_GetColor(int rgbnum, rgb_color_t * color);
 void RGB_LED_ErrorHandler(void);
-void RGB_LED_UpdateDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig);
+void RGB_LED_SetDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig);
+float RGB_LED_GetDutyCycle(rgb_led_color_conf_t * colorConfig);
 void RGB_LED_EnTimClk(TIM_TypeDef * TimRegx);
 void RGB_LED_DisTimClk(TIM_TypeDef * TimRegx);
 void RGB_LED_EnGpioClk(GPIO_TypeDef * port);

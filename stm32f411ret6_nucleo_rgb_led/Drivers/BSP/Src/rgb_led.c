@@ -11,10 +11,14 @@
  *          without the express written permission of the SonicSensory Inc.
  *
  *Initialization Sequence
- * TODO: add notes
+ * 1. Initialize Config Structure, RGB LED TIMER, PWM and GPIO Registers / Peripherals
+ *    - RGB_LED_Init(rgbnum); //rgbnum is the RGB LED you are using (0 is functional rgb led and 1 is decorative rgb led)
+ * 2. Start the RGB LED PWM generator - this generates three pwm outputs for the three individual leds of the rgb led
+ *    - RGB_LED_Start(rgbnum); //rgbnum is the RGB LED number you are using
  *
  *Normal Operation
- ** TODO: add notes
+ * 1. Set the RGB color of the LED by setting the three pwm outputs (0 - 100%) of the RGB LED pins, this will update the voltages seen by the RGB LED
+ *    RGB_LED_SetColor(rggnum, red, blue, green); //where red, blue, green is a number 0 - 255
  *
  *Shutdown Sequence
  * TODO: add notes
@@ -23,9 +27,9 @@
  * TODO: add notes
  *
  * Pins Used:
- * PA9  -  PWM Output pin to Red LED of RGB LED
+ * PA9  -  PWM Output pin to Red LED of RGB LED (PA5 for the STM32F411RET6 nucleo board)
  * PC8  -  PWM Output pin to Green LED of RGB LED
- * PD13 - PWM Output pin to Blue LED of RGB LED (on the STM32F411RET6 Nucleo Board use PC10)
+ * PD13 - PWM Output pin to Blue LED of RGB LED (PC10 for the STM32F411RET6 nucleo board)
  *
  */
 
@@ -389,15 +393,44 @@ void RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
 	}
 	//update RED pin of RGB LED - get the pwm duty cycle % equivalent of the 0 - 255 color value
 	float duty_cycle = RGB_PWM_OFFSET_RED + (color->red * RGB_TO_PWM_SCALE_RED); //ex: 240 * (100% / 255) = 94.1 % duty cycle (brightness %)
-	RGB_LED_UpdateDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].red);
+	RGB_LED_SetDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].red);
 
 	//GREEN
 	duty_cycle = RGB_PWM_OFFSET_GREEN + (color->green * RGB_TO_PWM_SCALE_GREEN);
-	RGB_LED_UpdateDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].green);
+	RGB_LED_SetDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].green);
 
 	//BLUE
 	duty_cycle = RGB_PWM_OFFSET_BLUE + (color->blue * RGB_TO_PWM_SCALE_BLUE);
-	RGB_LED_UpdateDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].blue);
+	RGB_LED_SetDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].blue);
+
+
+  return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_GetColor()
+** DESCRIPTION: get the current color settings of the rgb led
+** NOTE:		color variable is struct that just defines three unsigned char representing red, green and blue - range (0 - 255)
+ *
+*********************************************************************************** */
+void RGB_LED_GetColor(int rgbnum, rgb_color_t * color)
+{
+	if(rgbnum >= RGB_LED_COUNT){
+		RGB_LED_ErrorHandler();
+		return;
+	}
+	//RED - get red color rgb value 0 - 255
+	float duty_cycle=0.0;
+	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].red);
+	color->red = (duty_cycle - RGB_PWM_OFFSET_RED) / RGB_TO_PWM_SCALE_BLUE;
+
+	//GREEN
+	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].green);
+	color->green = (duty_cycle - RGB_PWM_OFFSET_GREEN) / RGB_TO_PWM_SCALE_BLUE;
+
+	//BLUE
+	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].blue);
+	color->blue = (duty_cycle - RGB_PWM_OFFSET_BLUE) / RGB_TO_PWM_SCALE_BLUE;
 
 
   return;
@@ -405,7 +438,7 @@ void RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
 
 
 /* ********************************************************************************
-** FUNCTION NAME: RGB_LED_UpdateDutyCycle()
+** FUNCTION NAME: RGB_LED_SetDutyCycle()
 ** DESCRIPTION: Updates the Duty Cycle /  Pulse value of the pwm used in the timer capture / compare register
 ** 				This essentially changed the voltage that the LED pin sees therefore changing the color of the entire rgb led
 ** 				Ex: if duty cycle is 50% then voltage seen by pin is 50% of VCC
@@ -413,7 +446,7 @@ void RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
 ** 			    RGB_LED_SetColor calls this function
  *
 *********************************************************************************** */
-void RGB_LED_UpdateDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig){
+void RGB_LED_SetDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig){
 	//timer_freq = system clock / (prescaler + 1)
 	//Period(Cycles) = Pwm Period * timer_freq = timer_freq / pwm freq  --- where Pwm period = 1 / pwm freq
 
@@ -437,6 +470,42 @@ void RGB_LED_UpdateDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * co
 	else if(colorConfig->timChannel==TIM_CHANNEL_4){
 		colorConfig->timHandle.Instance->CCR4 = colorConfig->pwmConfig.Pulse; //now we use the value that was recorded in the pwm structure
 	}
+
+	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_GetDutyCycle()
+** DESCRIPTION: Read the Duty Cycle /  Pulse value of the pwm used for a single color on the RGB LED
+**
+** NOTE:		RGB_LED_GetColor calls this function
+ *
+*********************************************************************************** */
+float RGB_LED_GetDutyCycle(rgb_led_color_conf_t * colorConfig){
+
+	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT; // not including the + 1 ...just because! I may have reasons
+	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
+
+	uint32_t duty_cycle_pulses;
+	float duty_cycle_percent;
+	//Now update the duty cycle by updating the pulse value, the timer will update the duty cycle after it completes its most recent period capture compare
+	//TIMx->CCR1 = OC_Config->Pulse
+	if(colorConfig->timChannel==TIM_CHANNEL_1){
+		duty_cycle_pulses = colorConfig->timHandle.Instance->CCR1; //this is the PULSE value that is essentially the duty cycle in clocks of the pwm
+	}
+	else if(colorConfig->timChannel==TIM_CHANNEL_2){
+		duty_cycle_pulses =colorConfig->timHandle.Instance->CCR2;
+	}
+	else if(colorConfig->timChannel==TIM_CHANNEL_3){
+		duty_cycle_pulses = colorConfig->timHandle.Instance->CCR3;
+	}
+	else if(colorConfig->timChannel==TIM_CHANNEL_4){
+		duty_cycle_pulses = colorConfig->timHandle.Instance->CCR4;
+	}
+
+	duty_cycle_percent = duty_cycle_pulses * 100 / timer_period;
+	return duty_cycle_percent;
 
 	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?
 

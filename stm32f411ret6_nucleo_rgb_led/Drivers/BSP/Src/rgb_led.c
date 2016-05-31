@@ -61,24 +61,28 @@ void RGB_LED_InitConfigs(int rgbnum)
 
 	//GPIO Port Config
 	RgbLedConfigs[rgbnum].red.port = RGB1_RED_PORT;
-	RgbLedConfigs[rgbnum].blue.port = RGB1_BLUE_PORT;
 	RgbLedConfigs[rgbnum].green.port = RGB1_GREEN_PORT;
+	RgbLedConfigs[rgbnum].blue.port = RGB1_BLUE_PORT;
+
 	//GPIO Pin
 	RgbLedConfigs[rgbnum].red.pin = RGB1_RED_PIN;
-	RgbLedConfigs[rgbnum].blue.pin = RGB1_BLUE_PIN;
 	RgbLedConfigs[rgbnum].green.pin = RGB1_GREEN_PIN;
+	RgbLedConfigs[rgbnum].blue.pin = RGB1_BLUE_PIN;
+
 	//TIM Channel
 	RgbLedConfigs[rgbnum].red.timChannel = RGB1_RED_TIM_CH;
-	RgbLedConfigs[rgbnum].blue.timChannel = RGB1_BLUE_TIM_CH;
 	RgbLedConfigs[rgbnum].green.timChannel = RGB1_GREEN_TIM_CH;
+	RgbLedConfigs[rgbnum].blue.timChannel = RGB1_BLUE_TIM_CH;
+
 	//TIMx Reg
 	RgbLedConfigs[rgbnum].red.timReg = RGB1_RED_TIM_REG;
-	RgbLedConfigs[rgbnum].blue.timReg = RGB1_BLUE_TIM_REG;
 	RgbLedConfigs[rgbnum].green.timReg = RGB1_GREEN_TIM_REG;
+	RgbLedConfigs[rgbnum].blue.timReg = RGB1_BLUE_TIM_REG;
+
 	//Alternate Function Num
 	RgbLedConfigs[rgbnum].red.afNum = RGB1_RED_AF;
-	RgbLedConfigs[rgbnum].blue.afNum = RGB1_BLUE_AF;
 	RgbLedConfigs[rgbnum].green.afNum = RGB1_GREEN_AF;
+	RgbLedConfigs[rgbnum].blue.afNum = RGB1_BLUE_AF;
 
 
 }
@@ -110,6 +114,56 @@ void RGB_LED_Init(int rgbnum)
   return;
 }
 
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_DeInit()
+** DESCRIPTION: RGB_LED to de-initialize the driver component.
+** NOTE:		None.
+*********************************************************************************** */
+void RGB_LED_DeInit(int rgbnum)
+{
+  /* Deinitialize RGB LED interface - pwm, clocks and gpio */
+	if(rgbnum >= RGB_LED_COUNT){
+			RGB_LED_ErrorHandler();
+			return;
+	}
+	RGB_LED_InitConfigs(rgbnum);
+
+	//TODO: add ability to init different RGB LEDs (right now just initializing RGB LED1 manually)
+	//Maybe add argument to this function to init specified RGB LED..?
+
+	//Init RGB LEDx Handler and Config
+
+	RGB_LED_DeInitPWMConfig(&RgbLedConfigs[rgbnum].red);
+	RGB_LED_DeInitPWMConfig(&RgbLedConfigs[rgbnum].green);
+	RGB_LED_DeInitPWMConfig(&RgbLedConfigs[rgbnum].blue);
+
+	//Once initialized, then ok to call RGB_LED_Start
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_Reset()
+** DESCRIPTION: Reset RGBx LED - stop pwm, configure data struct, initialize
+** NOTE:		Does not call the RGB_LED_Start method - need to call after reset
+*********************************************************************************** */
+void RGB_LED_Reset(int rgbnum)
+{
+	if(rgbnum >= RGB_LED_COUNT){
+				RGB_LED_ErrorHandler();
+				return;
+	}
+	/* Stop any currently running pwm leds */
+	RGB_LED_Stop(rgbnum);
+	/* Deinitialize pwm */
+	RGB_LED_DeInit(rgbnum);
+	/* Initialize */
+	RGB_LED_Init(rgbnum);
+
+	/* TODO: */
+
+  return;
+}
+
 
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_InitLEDConfig()
@@ -119,6 +173,7 @@ void RGB_LED_Init(int rgbnum)
 void RGB_LED_InitPWMConfig(rgb_led_color_conf_t * colorConfig){
 
 	colorConfig->timHandle.Instance = colorConfig->timReg;
+	colorConfig->timHandle.Channel = colorConfig->timChannel;
 	//timer_freq = system clock / (prescaler + 1)
 	//Period(Cycles) = Pwm Period * timer_freq = timer_freq / pwm freq  --- where Pwm period = 1 / pwm freq
 	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT; // not including the + 1 ...just because! I may have reasons
@@ -150,11 +205,50 @@ void RGB_LED_InitPWMConfig(rgb_led_color_conf_t * colorConfig){
 }
 
 /* ********************************************************************************
-** FUNCTION NAME: RRGB_LED_InitLEDPwm()
+** FUNCTION NAME: RGB_LED_DeInitLEDConfig()
+** DESCRIPTION: De-Initialize individual LED TIM Handler and PWM Config structures
+** NOTE:		None.
+*********************************************************************************** */
+void RGB_LED_DeInitPWMConfig(rgb_led_color_conf_t * colorConfig){
+
+	colorConfig->timHandle.Instance = colorConfig->timReg;
+
+	//De-Initialize TIM / PWM mode
+	//HAL_TIM_PWM_MspInit(&TimHandle);
+	if(HAL_TIM_PWM_DeInit(&colorConfig->timHandle) != HAL_OK)
+	{
+		/* Configuration Error */
+		RGB_LED_ErrorHandler();
+	}
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: RRGB_LED_InitLEDGpio()
 ** DESCRIPTION:
 ** NOTE:		This method is called by the HAL_TIM_PWM_MspInit callback
 *********************************************************************************** */
-void RGB_LED_InitLEDPwm(rgb_led_color_conf_t * colorConfig){
+void RGB_LED_InitLEDGpio(rgb_led_color_conf_t * colorConfig){
+
+	//Enable GPIOx peripheral clock
+	RGB_LED_EnGpioClk(colorConfig->port);
+
+	//Enable GPIOx pin as output and assign pin number
+	colorConfig->gpioInitStruct.Pin = colorConfig->pin;
+	colorConfig->gpioInitStruct.Mode = GPIO_MODE_AF_PP;
+	colorConfig->gpioInitStruct.Pull = GPIO_NOPULL;//GPIO_PULLDOWN; NOPULL
+	colorConfig->gpioInitStruct.Speed = GPIO_SPEED_FAST;
+	colorConfig->gpioInitStruct.Alternate = colorConfig->afNum; //ex: PA5 AF is GPIO_AF1_TIM2;
+	HAL_GPIO_Init(colorConfig->port, &colorConfig->gpioInitStruct);
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: RRGB_LED_DeInitLEDGpio()
+** DESCRIPTION: Deinitialize gpio ports to default
+** NOTE:		This method is called by the HAL_TIM_PWM_MspInit callback
+*********************************************************************************** */
+void RGB_LED_DeInitLEDGpio(rgb_led_color_conf_t * colorConfig){
 
 	//Enable GPIOx peripheral clock
 	RGB_LED_EnGpioClk(colorConfig->port);
@@ -165,7 +259,7 @@ void RGB_LED_InitLEDPwm(rgb_led_color_conf_t * colorConfig){
 	colorConfig->gpioInitStruct.Pull = GPIO_NOPULL;//GPIO_PULLDOWN;
 	colorConfig->gpioInitStruct.Speed = GPIO_SPEED_FAST;
 	colorConfig->gpioInitStruct.Alternate = colorConfig->afNum; //ex: PA5 AF is GPIO_AF1_TIM2;
-	HAL_GPIO_Init(colorConfig->port, &colorConfig->gpioInitStruct);
+	HAL_GPIO_DeInit(colorConfig->port, colorConfig->gpioInitStruct.Pin);
 
 }
 
@@ -203,7 +297,7 @@ void RGB_LED_StartLED(rgb_led_color_conf_t * colorConfig){
 
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_Stop()
-** DESCRIPTION: Stop the PWM generation on all color lines of RGB LED
+** DESCRIPTION: Stop the PWM generation on all color lines of RGBx LED
 ** NOTE:		None.
  *
 *********************************************************************************** */
@@ -237,29 +331,6 @@ void RGB_LED_StopLED(rgb_led_color_conf_t * colorConfig)
   return;
 }
 
-/* ********************************************************************************
-** FUNCTION NAME: RGB_LED_DeInit()
-** DESCRIPTION: RGB_LED to de-initialize the driver component.
-** NOTE:		None.
-*********************************************************************************** */
-void RGB_LED_DeInit(void)
-{
-  /* Deinitialize RGB LED interface */
-}
-
-/* ********************************************************************************
-** FUNCTION NAME: RGB_LED_Reset()
-** DESCRIPTION: Reset RGB_LED. To possibly turn into MACRO later if we deem other action are not required.
-** NOTE:		None.
-*********************************************************************************** */
-void RGB_LED_Reset(void)
-{
-  /* Initialize the Control interface of the RGB LED Driver */
-
-  /* TODO: */
-
-  return;
-}
 
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_PowerDown()
@@ -267,22 +338,18 @@ void RGB_LED_Reset(void)
 ** NOTE:		None.
  *Power-Down Sequence:
 *********************************************************************************** */
-void RGB_LED_PowerDown(void)
+void RGB_LED_PowerDown(int rgbnum)
 {
+	if(rgbnum >= RGB_LED_COUNT){
+				RGB_LED_ErrorHandler();
+				return;
+		}
+	//TODO: what else besides calling RGB_LED_Stop? This just stops pwm, what else should be power down? GPIOs?
+	RGB_LED_Stop(rgbnum);
 
   return;
 }
 
-/* ********************************************************************************
-** FUNCTION NAME: RGB_LED_Configuration()
-** DESCRIPTION: Set of configuration of LED output model
-** NOTE:		None.
-*********************************************************************************** */
-void RGB_LED_SetConfig(void)
-{
-  /* TODO: need to define config struct and pass that as argument */
-
-}
 
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_ExitShutdown()
@@ -310,14 +377,69 @@ void RGB_LED_EnterShutdown(void)
 
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_SetColor()
-** DESCRIPTION:
-** NOTE:		None.
+** DESCRIPTION: set the three color pins pwm duty cycle of the rgb led to change color
+** NOTE:		color variable is struct that just defines three unsigned char representing red, green and blue - range (0 - 255)
  *
 *********************************************************************************** */
-void RGB_LED_SetColor(uint16_t red, uint16_t green, uint16_t blue)
+void RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
 {
+	if(rgbnum >= RGB_LED_COUNT){
+		RGB_LED_ErrorHandler();
+		return;
+	}
+	//update RED pin of RGB LED - get the pwm duty cycle % equivalent of the 0 - 255 color value
+	float duty_cycle = RGB_PWM_OFFSET_RED + (color->red * RGB_TO_PWM_SCALE_RED); //ex: 240 * (100% / 255) = 94.1 % duty cycle (brightness %)
+	RGB_LED_UpdateDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].red);
+
+	//GREEN
+	duty_cycle = RGB_PWM_OFFSET_GREEN + (color->green * RGB_TO_PWM_SCALE_GREEN);
+	RGB_LED_UpdateDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].green);
+
+	//BLUE
+	duty_cycle = RGB_PWM_OFFSET_BLUE + (color->blue * RGB_TO_PWM_SCALE_BLUE);
+	RGB_LED_UpdateDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].blue);
+
 
   return;
+}
+
+
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_UpdateDutyCycle()
+** DESCRIPTION: Updates the Duty Cycle /  Pulse value of the pwm used in the timer capture / compare register
+** 				This essentially changed the voltage that the LED pin sees therefore changing the color of the entire rgb led
+** 				Ex: if duty cycle is 50% then voltage seen by pin is 50% of VCC
+** NOTE:		Might need to only allow this during certain interrupt periods ... blocking?
+** 			    RGB_LED_SetColor calls this function
+ *
+*********************************************************************************** */
+void RGB_LED_UpdateDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig){
+	//timer_freq = system clock / (prescaler + 1)
+	//Period(Cycles) = Pwm Period * timer_freq = timer_freq / pwm freq  --- where Pwm period = 1 / pwm freq
+
+	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT; // not including the + 1 ...just because! I may have reasons
+	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
+	//TODO: validate the duty cycle is a unsigned int value between 0 and 100
+	//update the duty cycle value in the pwm structure (this does not update the pwm, it's just so record our new duty cycle value)
+	colorConfig->pwmConfig.Pulse = duty_cycle_percent * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
+
+	//Now update the duty cycle by updating the pulse value, the timer will update the duty cycle after it completes its most recent period capture compare
+	//TIMx->CCR1 = OC_Config->Pulse
+	if(colorConfig->timChannel==TIM_CHANNEL_1){
+		colorConfig->timHandle.Instance->CCR1 = colorConfig->pwmConfig.Pulse; //now we use the value that was recorded in the pwm structure
+	}
+	else if(colorConfig->timChannel==TIM_CHANNEL_2){
+		colorConfig->timHandle.Instance->CCR2 = colorConfig->pwmConfig.Pulse; //now we use the value that was recorded in the pwm structure
+	}
+	else if(colorConfig->timChannel==TIM_CHANNEL_3){
+		colorConfig->timHandle.Instance->CCR3 = colorConfig->pwmConfig.Pulse; //now we use the value that was recorded in the pwm structure
+	}
+	else if(colorConfig->timChannel==TIM_CHANNEL_4){
+		colorConfig->timHandle.Instance->CCR4 = colorConfig->pwmConfig.Pulse; //now we use the value that was recorded in the pwm structure
+	}
+
+	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?
+
 }
 
 /* ********************************************************************************
@@ -333,37 +455,6 @@ void RGB_LED_ErrorHandler(void)
   return;
 }
 
-
-/* ********************************************************************************
-** FUNCTION NAME: HAL_TIM_PWM_MspInit()
-** DESCRIPTION: Called by HAL_TIM_PWM_MspInit
-** NOTE:		This function overrides the function declared in stm32f4xx_hal_tim.h
- *
-*********************************************************************************** */
-void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *TimHandle){
-	//enable timer clocks and led gpio ports
-	for(int i = 0; i<RGB_LED_COUNT; i++){
-		if(TimHandle->Channel == RgbLedConfigs[i].red.timChannel && TimHandle->Instance == RgbLedConfigs[i].red.timReg){
-			RGB_LED_EnTimClk(RgbLedConfigs[i].red.timReg);
-			RGB_LED_InitLEDPwm(&RgbLedConfigs[i].red);
-			return;
-		}
-		else if(TimHandle->Channel == RgbLedConfigs[i].green.timChannel && TimHandle->Instance == RgbLedConfigs[i].green.timReg){
-			RGB_LED_EnTimClk(RgbLedConfigs[i].green.timReg);
-			RGB_LED_InitLEDPwm(&RgbLedConfigs[i].green);
-			return;
-		}
-		else if(TimHandle->Channel == RgbLedConfigs[i].blue.timChannel && TimHandle->Instance == RgbLedConfigs[i].blue.timReg){
-			RGB_LED_EnTimClk(RgbLedConfigs[i].blue.timReg);
-			RGB_LED_InitLEDPwm(&RgbLedConfigs[i].blue);
-			return;
-		}
-		else{
-			//TODO: ?
-		}
-	}
-	RGB_LED_ErrorHandler();
-}
 
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_EnTimClk()
@@ -382,12 +473,44 @@ void RGB_LED_EnTimClk(TIM_TypeDef * TimRegx){
 	}
 	else if(TimRegx==TIM3){
 		__TIM3_CLK_ENABLE();
+		return;
 	}
 	else if(TimRegx==TIM4){
 		__TIM4_CLK_ENABLE();
+		return;
 	}
 	else{
 		RGB_LED_ErrorHandler();
+		return;
+	}
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_DisTimClk()
+** DESCRIPTION: Disable timer clock
+** NOTE:
+ *
+*********************************************************************************** */
+void RGB_LED_DisTimClk(TIM_TypeDef * TimRegx){
+	if(TimRegx==TIM1){
+		__TIM1_CLK_DISABLE();
+		return;
+	}
+	else if(TimRegx==TIM2){
+		__TIM2_CLK_DISABLE();
+		return;
+	}
+	else if(TimRegx==TIM3){
+		__TIM3_CLK_DISABLE();
+		return;
+	}
+	else if(TimRegx==TIM4){
+		__TIM4_CLK_DISABLE();
+		return;
+	}
+	else{
+		RGB_LED_ErrorHandler();
+		return;
 	}
 }
 
@@ -422,30 +545,65 @@ void RGB_LED_EnGpioClk(GPIO_TypeDef * port){
 }
 
 
-
-
 /* ********************************************************************************
-** FUNCTION NAME: RGB_LED_UpdateDutyCycle()
-** DESCRIPTION: Updates the Duty Cycle /  Pulse value of the pwm used in the timer capture / compare register
-** 				This essentially changed the voltage that the LED pin sees
-** 				Ex: if duty cycle is 50% then voltage seen by pin is 50% of VCC
-** NOTE:		Might need to only allow this during certain interrupt periods ... blocking?
+** FUNCTION NAME: HAL_TIM_PWM_MspInit()
+** DESCRIPTION: HAL_TIM_PWM_Init
+** NOTE:		This function overrides the function declared in stm32f4xx_hal_tim.h
  *
 *********************************************************************************** */
-void RGB_LED_UpdateDutyCycle(uint32_t duty_cycle_percent, rgb_led_color_conf_t * colorConfig){
-	//timer_freq = system clock / (prescaler + 1)
-	//Period(Cycles) = Pwm Period * timer_freq = timer_freq / pwm freq  --- where Pwm period = 1 / pwm freq
+void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *TimHandle){
+	//enable timer clocks and led gpio ports
+	for(int i = 0; i<RGB_LED_COUNT; i++){
+		if(TimHandle->Channel == RgbLedConfigs[i].red.timChannel && TimHandle->Instance == RgbLedConfigs[i].red.timReg){
+			RGB_LED_EnTimClk(RgbLedConfigs[i].red.timReg);
+			RGB_LED_InitLEDGpio(&RgbLedConfigs[i].red);
+			return;
+		}
+		else if(TimHandle->Channel == RgbLedConfigs[i].green.timChannel && TimHandle->Instance == RgbLedConfigs[i].green.timReg){
+			RGB_LED_EnTimClk(RgbLedConfigs[i].green.timReg);
+			RGB_LED_InitLEDGpio(&RgbLedConfigs[i].green);
+			return;
+		}
+		else if(TimHandle->Channel == RgbLedConfigs[i].blue.timChannel && TimHandle->Instance == RgbLedConfigs[i].blue.timReg){
+			RGB_LED_EnTimClk(RgbLedConfigs[i].blue.timReg);
+			RGB_LED_InitLEDGpio(&RgbLedConfigs[i].blue);
+			return;
+		}
+		else{
+			//TODO: ?
+		}
+	}
+	RGB_LED_ErrorHandler();
+}
 
-	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT; // not including the + 1 ...just because! I may have reasons
-	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
-	//TODO: validate the duty cycle is a unsigned int value between 0 and 100
-	//update the duty cycle value in the pwm structure (this does not update the pwm, it's just so record our new duty cycle value)
-	colorConfig->pwmConfig.Pulse = duty_cycle_percent * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
-
-	//Now update the duty cycle by updating the pulse value, the timer will update the duty cycle after it completes its most recent period capture compare
-	//TIMx->CCR1 = OC_Config->Pulse
-	colorConfig->timHandle.Instance->CCR1 = colorConfig->pwmConfig.Pulse; //now we use the value that was recorded in the pwm structure
-
-	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?
+/* ********************************************************************************
+** FUNCTION NAME: HAL_TIM_PWM_MspDeInit()
+** DESCRIPTION: HAL_TIM_PWM_MspDeInit
+** NOTE:		This function overrides the function declared in stm32f4xx_hal_tim.h
+ *
+*********************************************************************************** */
+void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef *TimHandle){
+	//disable timer clocks and led gpio ports
+		for(int i = 0; i<RGB_LED_COUNT; i++){
+			if(TimHandle->Channel == RgbLedConfigs[i].red.timChannel && TimHandle->Instance == RgbLedConfigs[i].red.timReg){
+				RGB_LED_DisTimClk(RgbLedConfigs[i].red.timReg);
+				RGB_LED_DeInitLEDGpio(&RgbLedConfigs[i].red);
+				return;
+			}
+			else if(TimHandle->Channel == RgbLedConfigs[i].green.timChannel && TimHandle->Instance == RgbLedConfigs[i].green.timReg){
+				RGB_LED_DisTimClk(RgbLedConfigs[i].green.timReg);
+				RGB_LED_DeInitLEDGpio(&RgbLedConfigs[i].green);
+				return;
+			}
+			else if(TimHandle->Channel == RgbLedConfigs[i].blue.timChannel && TimHandle->Instance == RgbLedConfigs[i].blue.timReg){
+				RGB_LED_DisTimClk(RgbLedConfigs[i].blue.timReg);
+				RGB_LED_DeInitLEDGpio(&RgbLedConfigs[i].blue);
+				return;
+			}
+			else{
+				//TODO: ?
+			}
+		}
+		RGB_LED_ErrorHandler();
 
 }

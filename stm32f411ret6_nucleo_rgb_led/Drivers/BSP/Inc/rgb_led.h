@@ -13,12 +13,30 @@
  * ------Constants and Variable Declarations
 */
 
+/* Convert RGB 255 color to 0 - 100% duty cycle
+*
+* RGB_PWM_OFFSET_x can be used when RGB LED sink is Positive Voltage instead of Ground
+* When sink is positive voltage then 100% pwm results in 0 brightness
+* so adding a -100% offset makes is 100% brightness
+*
+* ex: blue value of 240 -> pwm output = 100% + 240*(-100%/255) = 5% pwm output which is almost 100% brightness
+*     if sink is positive voltage
+*     if sink is groudn then just do: 0% + 240*(100%/255) = 94%
+*/
+#define RGB_TO_PWM_SCALE_RED	(-60.0/255.0)
+#define RGB_PWM_OFFSET_RED		60.0
+#define RGB_TO_PWM_SCALE_GREEN	(-100.0/255.0)
+#define RGB_PWM_OFFSET_GREEN	100.0
+#define RGB_TO_PWM_SCALE_BLUE	(-100.0/255.0)
+#define RGB_PWM_OFFSET_BLUE		100.0
+
 /*
  * RGB LED Count
  */
 
 #define RGB_LED_COUNT	1 //make this 2 when we are ready to test 2 rgb leds
-#define RGB_LED1_IDX	0
+#define FUNC_LED_NUM	0 //functional RGB LED number
+//#define DEC_LED_NUM		1 //decorative RGB LED number
 
 /* LED PINS
  * Add PIN sets here as long as they can be mapped to a TIMER (ex: TIM2_CH1)
@@ -34,7 +52,7 @@
  * Period = Period(Cycles)  / timer_freq -- Period(cycles) is the value used in the TIM register config
  * So Period(Cycles) = Period * timer_freq
  */
-#define RGB_PWMFREQ_DFLT		1000 //1000 Hz (1KHz)
+#define RGB_PWMFREQ_DFLT	1000 //1000 Hz (1KHz)
 
 /* Duty_Cycle
  * Pwm Duty Cycle = 100% * Pulse(Cycles) / Period(Cycles)
@@ -47,10 +65,10 @@
  * RGB LED 1 PIN Mapping - so far we are just testing with 1 RGB LED but can add more assuming we have enough TIMER ports available
  */
 //RED
-#define RGB1_RED_AF				GPIO_AF1_TIM2//GPIO_AF1_TIM1
+#define RGB1_RED_AF				GPIO_AF1_TIM2 //GPIO_AF1_TIM1
 #define RGB1_RED_PORT			GPIOA
 #define RGB1_RED_PIN			GPIO_PIN_5//GPIO_PIN_9
-#define RGB1_RED_TIM_CH			TIM_CHANNEL_1//TIM_CHANNEL_2
+#define RGB1_RED_TIM_CH			TIM_CHANNEL_1 //TIM_CHANNEL_2
 #define RGB1_RED_TIM_REG		TIM2//TIM1
 #define RGB1_RED_TIMCLK_EN()	__TIM2_CLK_ENABLE()//__TIM1_CLK_ENABLE()
 
@@ -114,6 +132,14 @@ typedef struct rgb_led_conf_t {
 //array of rgb led configs
 rgb_led_conf_t RgbLedConfigs[RGB_LED_COUNT];
 
+//color variable
+typedef struct rgb_color_t {
+	unsigned char red; //rgb range: 0 - 255
+	unsigned char green;
+	unsigned char blue;
+} rgb_color_t;
+
+
 
 
 /*
@@ -121,22 +147,24 @@ rgb_led_conf_t RgbLedConfigs[RGB_LED_COUNT];
  */
 void RGB_LED_InitConfigs(int rgbnum);
 void RGB_LED_Init(int rgbnum);
+void RGB_LED_DeInitLEDGpio(rgb_led_color_conf_t * colorConfig);
+void RGB_LED_Reset(int rgbnum);
 void RGB_LED_InitPWMConfig(rgb_led_color_conf_t * colorConfig);
-void RGB_LED_InitLEDPwm(rgb_led_color_conf_t * colorConfig);
+void RGB_LED_DeInitPWMConfig(rgb_led_color_conf_t * colorConfig);
+void RGB_LED_InitLEDGpio(rgb_led_color_conf_t * colorConfig);
 void RGB_LED_Start(int rgbnum);
 void RGB_LED_StartLED(rgb_led_color_conf_t * colorConfig);
 void RGB_LED_Stop(int rgbnum);
 void RGB_LED_StopLED(rgb_led_color_conf_t * colorConfig);
-void RGB_LED_DeInit(void);
-void RGB_LED_Reset(void);
-void RGB_LED_PowerDown(void);
-void RGB_LED_SetConfig(void); //TODO: need config struct
+void RGB_LED_DeInit(int rgbnum);
+void RGB_LED_PowerDown(int rgbnum);
 void RGB_LED_ExitShutdown(void);
 void RGB_LED_EnterShutdown(void);
-void RGB_LED_SetColor(uint16_t red, uint16_t green, uint16_t blue);
+void RGB_LED_SetColor(int rgbnum, rgb_color_t * color);
 void RGB_LED_ErrorHandler(void);
-void RGB_LED_UpdateDutyCycle(uint32_t duty_cycle_percent, rgb_led_color_conf_t * colorConfig);
+void RGB_LED_UpdateDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig);
 void RGB_LED_EnTimClk(TIM_TypeDef * TimRegx);
+void RGB_LED_DisTimClk(TIM_TypeDef * TimRegx);
 void RGB_LED_EnGpioClk(GPIO_TypeDef * port);
 
 

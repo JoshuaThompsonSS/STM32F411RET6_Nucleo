@@ -33,7 +33,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
-#include "rgb_led_interface.h"
+#include "functional_rgb_led.h"
 
 
 
@@ -164,7 +164,6 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
-  uint32_t theclock = HAL_RCC_GetSysClockFreq();
 
   /* Initialize LED*/
   //initLED();
@@ -174,10 +173,9 @@ int main(void)
 
   /* Initialize PWM on TIM2 Channel 2 */
   //initPwmTimer();
-  RGB_LED_InitConfigs(0);
-  RGB_LED_InitPWMConfig(&RgbLedConfigs[0].red);
-  RGB_LED_StartLED(&RgbLedConfigs[0].red);
-  uint32_t duty_cycle_percent = 0;
+  RGB_LED_Init(FUNC_RGB_LED_NUM);
+  RGB_LED_Start(FUNC_RGB_LED_NUM);
+  rgb_color_t color = {0, 30, 90};
 
   while (1)
   {
@@ -187,9 +185,12 @@ int main(void)
 
 	  //continuously dim and then brighten LED
 	  wait_sec(1); //update duty cycle until 100% then restart
-	  RGB_LED_UpdateDutyCycle(duty_cycle_percent, &RgbLedConfigs[0].red);
-	  duty_cycle_percent += 10;
-	  if(duty_cycle_percent >= 100){duty_cycle_percent = 0;} //restart after reaching 100% brightness
+	  RGB_LED_SetColor(FUNC_RGB_LED_NUM, &color);
+	  color.red += 10; color.green += 10; color.blue += 10;
+	  if(color.red >= 255){color.red = 0;} //restart after reaching 100%t
+	  if(color.green >= 255){color.green = 0;} //restart after reaching 100% brightness
+	  if(color.blue >= 255){color.blue = 0;} //restart after reaching 100% brightness
+
 
   }
 

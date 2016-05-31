@@ -163,6 +163,7 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
+  uint32_t theclock = HAL_RCC_GetSysClockFreq();
 
   /* Initialize LED*/
   //initLED();

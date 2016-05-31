@@ -23,6 +23,9 @@
 #define RGB1_RED_TIM_CH			TIM_CHANNEL_1//TIM_CHANNEL_2
 #define RGB1_RED_TIM_REG		TIM2//TIM1
 #define RGB1_RED_TIMCLK_EN()	__TIM2_CLK_ENABLE()//__TIM1_CLK_ENABLE()
+#define RGB1_RED_PER_DFLT		8400 //period default of pwm timer
+#define RGB1_RED_PS_DFLT		1000 //prescaler default of pwm timer
+#define RGB1_RED_PULSE_DFLT		4000 //pulse default of pwm timer
 
 //GREEN
 #define RGB1_GREEN_PORT			GPIOC
@@ -31,6 +34,9 @@
 #define RGB1_GREEN_TIM_REG		TIM3
 #define RGB1_GREEN_AF			GPIO_AF2_TIM3
 #define RGB1_GREEN_TIMCLK_EN()	__TIM3_CLK_ENABLE()
+#define RGB1_GREEN_PER_DFLT		8400 //period default of pwm timer
+#define RGB1_GREEN_PS_DFLT		1000 //prescaler default of pwm timer
+#define RGB1_GREEN_PULSE_DFLT	4000 //pulse default of pwm timer
 //BLUE
 #define RGB1_BLUE_PORT			GPIOC //Booms are GPIOD
 #define RGB1_BLUE_PIN			GPIO_PIN_9 //Booms are GPIO_PIN_13
@@ -38,6 +44,9 @@
 #define RGB1_BLUE_TIM_REG		TIM3
 #define RGB1_BLUE_AF			GPIO_AF2_TIM3
 #define RGB1_BLUE_TIMCLK_EN()	__TIM3_CLK_ENABLE()
+#define RGB1_BLUE_PER_DFLT		8400 //period default of pwm timer
+#define RGB1_BLUE_PS_DFLT		1000 //prescaler default of pwm timer
+#define RGB1_BLUE_PULSE_DFLT	4000 //pulse default of pwm timer
 
 
 void RGB_LED_Init(void);

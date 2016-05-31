@@ -73,8 +73,8 @@ void RGB_LED_Init()
 *********************************************************************************** */
 void RGB_LED_InitLEDConfig(TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef * PwmConfigPtr, TIM_TypeDef * TimReg, uint32_t TimChannel){
 	TimHandlePtr->Instance = TimReg;
-	//timer freq = 84MHz / (prescaler + )
-	TimHandlePtr->Init.Period = 8400; //period of 1 hz if prescaler = 1000
+	//timer freq = SYSCLK_FREQ / (prescaler + 1) = 16MHz / (prescaler + )
+	TimHandlePtr->Init.Period = 16; //period of 1 hz if prescaler = 1000
 	TimHandlePtr->Init.Prescaler = 1000;
 	//pwm freq = period / timer_freq
 	TimHandlePtr->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -92,7 +92,7 @@ void RGB_LED_InitLEDConfig(TIM_HandleTypeDef * TimHandlePtr, TIM_OC_InitTypeDef 
 	PwmConfigPtr->OCMode = TIM_OCMODE_PWM1;
 	PwmConfigPtr->OCFastMode = TIM_OCFAST_ENABLE;
 	PwmConfigPtr->OCPolarity = TIM_OCPOLARITY_HIGH;
-	PwmConfigPtr->Pulse = 1000;
+	PwmConfigPtr->Pulse = 4;
 	if(HAL_TIM_PWM_ConfigChannel(TimHandlePtr, PwmConfigPtr, TimChannel) != HAL_OK)
 	{
 		/* Configuration Error */

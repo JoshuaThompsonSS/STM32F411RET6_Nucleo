@@ -33,7 +33,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
-#include "rgb_led.h"
+#include "rgb_led_interface.h"
+
 
 
 /* USER CODE BEGIN Includes */
@@ -173,9 +174,10 @@ int main(void)
 
   /* Initialize PWM on TIM2 Channel 2 */
   //initPwmTimer();
-  RGB_LED_InitLEDConfig(&RGB1_RedTimHandle, &RGB1_RedPwmConfig, RGB1_RED_TIM_REG, RGB1_RED_TIM_CH);
-  RGB_LED_StartLED(&RGB1_RedTimHandle, RGB1_RED_TIM_CH);
-
+  RGB_LED_InitConfigs(0);
+  RGB_LED_InitPWMConfig(&RgbLedConfigs[0].red);
+  RGB_LED_StartLED(&RgbLedConfigs[0].red);
+  uint32_t duty_cycle_percent = 0;
 
   while (1)
   {
@@ -183,6 +185,11 @@ int main(void)
 	  //Interrupt handler is EXTI15_10_IRQHandler (defined in stm32f4xx_it.c) and calls the led toggle code
 	  //when the interrupt is generated on GPIOC pin 13 (button)
 
+	  //continuously dim and then brighten LED
+	  wait_sec(1); //update duty cycle until 100% then restart
+	  RGB_LED_UpdateDutyCycle(duty_cycle_percent, &RgbLedConfigs[0].red);
+	  duty_cycle_percent += 10;
+	  if(duty_cycle_percent >= 100){duty_cycle_percent = 0;} //restart after reaching 100% brightness
 
   }
 

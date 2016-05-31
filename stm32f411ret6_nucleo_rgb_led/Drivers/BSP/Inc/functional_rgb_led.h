@@ -99,7 +99,7 @@ void FUNCTIONAL_RGB_LED_SetColor(rgb_color_t * color);
 void FUNCTIONAL_RGB_LED_GetColor(rgb_color_t * color);
 void FUNCTIONAL_RGB_LED_GetColorDiff(rgb_color_t * color1, rgb_color_t * color2, rgb_color_t * colorDelta);
 
-//Step functions to creat specific RGB LED sequences
+//Step functions to create specific RGB LED sequences
 void FUNCTIONAL_RGB_LED_Ramp(void);
 void FUNCTIONAL_RGB_LED_Hold(void);
 void FUNCTIONAL_RGB_LED_Setpoint(void);

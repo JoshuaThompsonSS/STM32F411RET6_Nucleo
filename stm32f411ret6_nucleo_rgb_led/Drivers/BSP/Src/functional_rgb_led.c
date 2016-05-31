@@ -37,11 +37,11 @@
  */
 
 
-
 /*
  ********  FUNCTION DECLARATION & DEFINTION ********
  */
 void FUNCTIONAL_RGB_LED_Init(void){
+	RGB_LED_Init(FUNC_RGB_LED_NUM);
 	return;
 }
 void FUNCTIONAL_RGB_LED_InitRampSeq(void){

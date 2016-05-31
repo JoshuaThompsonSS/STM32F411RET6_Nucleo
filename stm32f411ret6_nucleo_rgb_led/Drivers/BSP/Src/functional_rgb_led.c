@@ -1,6 +1,4 @@
-/*
- ******************************************************************************
- * File Name          : rgb_led_interface.c
+/* File Nameme          : rgb_led_interface.c
  * Description        : rgb_led_interface: RGB LED Driver Interface - wrapper around rgb_led driver to provide high level control of rgb leds
  ******************************************************************************
  *
@@ -31,7 +29,7 @@
 /*
  ********  INCLUDE FILES & EXTERNAL VARIABLES  ********
  */
-#include "rgb_led_interface.h"
+#include "functional_rgb_led.h"
 
 
 /*
@@ -43,7 +41,62 @@
 /*
  ********  FUNCTION DECLARATION & DEFINTION ********
  */
-int RGBTest(void){
-return 1;
+void FUNCTIONAL_RGB_LED_Init(void){
+	return;
 }
+void FUNCTIONAL_RGB_LED_InitRampSeq(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_InitHoldSeq(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_InitSetpointSeq(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_InitRepeatSeq(void){
+	return;
+}
+
+void FUNCTIONAL_RGB_LED_Start(void)
+{
+	return;
+}
+void FUNCTIONAL_RGB_LED_Stop(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_DeInit(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_Reset(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_SetColor(rgb_color_t * color){
+	return;
+}
+void FUNCTIONAL_RGB_LED_GetColor(rgb_color_t * color){
+	return;
+}
+void FUNCTIONAL_RGB_LED_GetColorDiff(rgb_color_t * color1, rgb_color_t * color2, rgb_color_t * colorDelta){
+	return;
+}
+
+//Step functions to create specific RGB LED sequences
+void FUNCTIONAL_RGB_LED_Ramp(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_Hold(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_Setpoint(void){
+	return;
+}
+void FUNCTIONAL_RGB_LED_Repeat(void){
+	return;
+}
+
+//Sequence routine service - should be called at least every 100 ms by SysTick_Handler in stm32f4xx_it.c
+void FUNCTIONAL_RGB_LED_IRQHandler(void){
+	return;
+}
+
 

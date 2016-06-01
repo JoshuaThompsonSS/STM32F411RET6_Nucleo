@@ -133,32 +133,40 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 	rgb_led_step_t setpoint_step1;
 	setpoint_step1.current_step_num = 0;
 	setpoint_step1.color_setpoint = BlackColor;
+	setpoint_step1.step_type = SETPOINT_STEP;
 	setpoint_step1.next_step_num = 1;
 	setpoint_step1.last_step = false;
 	setpoint_step1.func_handler = FUNCTIONAL_RGB_LED_Setpoint;
+	setpoint_step1.complete = false;
+
 	//Ramp Step - increase color to white at a duration of 1 sec
 	rgb_led_step_t ramp_step2;
 	ramp_step2.time = 0;
+	ramp_step2.step_type = RAMP_STEP;
 	ramp_step2.current_step_num = 1;
 	ramp_step2.color_setpoint = WhiteColor;
 	ramp_step2.duration = 1;
 	ramp_step2.next_step_num = 2;
 	ramp_step2.last_step = false;
 	ramp_step2.func_handler = FUNCTIONAL_RGB_LED_Ramp;
+	ramp_step2.complete = false;
 
 	//Hold Step - set color to white and hold for duration of 1 sec
 	//			- make this step the last step (so sequence repeats)
 	rgb_led_step_t hold_step3;
+	hold_step3.step_type = HOLD_STEP;
 	hold_step3.time = 0;
 	hold_step3.current_step_num = 2;
 	hold_step3.color_setpoint = WhiteColor;
-	hold_step3.duration = 5;
+	hold_step3.duration = 1;
 	hold_step3.next_step_num = 3; //go back to beginning
 	hold_step3.last_step = false;
 	hold_step3.func_handler = FUNCTIONAL_RGB_LED_Hold;
+	hold_step3.complete = false;
 
 	//Ramp Step - increase color to white at a duration of 1 sec
 	rgb_led_step_t ramp_step4;
+	ramp_step4.step_type = RAMP_STEP;
 	ramp_step4.time = 0;
 	ramp_step4.current_step_num = 3;
 	ramp_step4.color_setpoint = BlackColor;
@@ -166,16 +174,19 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 	ramp_step4.next_step_num = 4;
 	ramp_step4.last_step = false;
 	ramp_step4.func_handler = FUNCTIONAL_RGB_LED_Ramp;
+	ramp_step4.complete = false;
 
 	//hold
 	rgb_led_step_t hold_step5;
+	hold_step5.step_type = HOLD_STEP;
 	hold_step5.time = 0;
 	hold_step5.current_step_num = 4;
 	hold_step5.color_setpoint = BlackColor;
-	hold_step5.duration = 5;
+	hold_step5.duration = 1;
 	hold_step5.next_step_num = 0; //go back to beginning
 	hold_step5.last_step = true;
 	hold_step5.func_handler = FUNCTIONAL_RGB_LED_Hold;
+	hold_step5.complete = false;
 
 	sequence->steps[0] = setpoint_step1;
 	sequence->steps[1] = ramp_step2;
@@ -236,15 +247,17 @@ void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(void){
 void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 	RGB_LED_GetColor(FUNC_RGB_LED_NUM, &step->color);
 	rgb_color_t dlta_clr;
+	FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
 	if(step->time <= 0){
-		FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
 		step->scales.red = dlta_clr.red / step->duration;
 		step->scales.green = dlta_clr.green / step->duration;
 		step->scales.blue = dlta_clr.blue / step->duration;
 	}
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
-	unsigned char color_diff = dlta_clr.red + dlta_clr.green + dlta_clr.blue;
-	if((color_diff <= 0) && (step->time >= step->duration)){
+	int color_diff = dlta_clr.red + dlta_clr.green + dlta_clr.blue;
+	if(color_diff < 0){color_diff = color_diff * (-1);} //abs value
+
+	if((color_diff <= MIN_COLOR_DIFF) && (step->time >= step->duration)){
 		step->complete = true;
 		step->time = 0;
 		return;
@@ -261,7 +274,7 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 }
 
 /* ********************************************************************************
-** FUNCTION NAME: FUNCTIONAL_RGB_LED_Hole()
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_Hold()
 ** DESCRIPTION:
 ** 				- set color to hold
 ** 				- increment step time elapsed
@@ -270,17 +283,11 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Hold(rgb_led_step_t * step){
-	static bool set = false;
-	if(!set){
-		FUNCTIONAL_RGB_LED_SetColor(&step->color_setpoint);
-		set = true;
-	}
-
+	if(step->time <= 0){FUNCTIONAL_RGB_LED_SetColor(&step->color_setpoint);}
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
 	if(step->time >= step->duration){
 		step->complete = true;
 		step->time = 0;
-		set = false;
 	}
 	return;
 }

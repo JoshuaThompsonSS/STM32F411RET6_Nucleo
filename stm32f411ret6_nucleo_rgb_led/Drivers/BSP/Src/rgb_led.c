@@ -198,9 +198,9 @@ void RGB_LED_InitPWMConfig(rgb_led_color_conf_t * colorConfig){
 		RGB_LED_ErrorHandler();
 	}
 
-	colorConfig->pwmConfig.OCMode = TIM_OCMODE_PWM1;
-	colorConfig->pwmConfig.OCFastMode = TIM_OCFAST_ENABLE;
-	colorConfig->pwmConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
+	colorConfig->pwmConfig.OCMode = TIM_OCMODE_PWM2; //PWM1
+	colorConfig->pwmConfig.OCFastMode = TIM_OCFAST_DISABLE;
+	colorConfig->pwmConfig.OCPolarity = TIM_OCPOLARITY_HIGH; //HIGH
 	colorConfig->pwmConfig.Pulse = RGB_PWMDUTY_DFLT * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
 	if(HAL_TIM_PWM_ConfigChannel(&colorConfig->timHandle, &colorConfig->pwmConfig, colorConfig->timChannel) != HAL_OK)
 	{
@@ -240,8 +240,8 @@ void RGB_LED_InitLEDGpio(rgb_led_color_conf_t * colorConfig){
 	//Enable GPIOx pin as output and assign pin number
 	colorConfig->gpioInitStruct.Pin = colorConfig->pin;
 	colorConfig->gpioInitStruct.Mode = GPIO_MODE_AF_PP;
-	colorConfig->gpioInitStruct.Pull = GPIO_NOPULL;//GPIO_PULLDOWN; NOPULL
-	colorConfig->gpioInitStruct.Speed = GPIO_SPEED_FAST;
+	colorConfig->gpioInitStruct.Pull = GPIO_PULLUP;//GPIO_PULLDOWN; NOPULL
+	colorConfig->gpioInitStruct.Speed = GPIO_SPEED_LOW;
 	colorConfig->gpioInitStruct.Alternate = colorConfig->afNum; //ex: PA5 AF is GPIO_AF1_TIM2;
 	HAL_GPIO_Init(colorConfig->port, &colorConfig->gpioInitStruct);
 
@@ -261,7 +261,7 @@ void RGB_LED_DeInitLEDGpio(rgb_led_color_conf_t * colorConfig){
 	colorConfig->gpioInitStruct.Pin = colorConfig->pin;
 	colorConfig->gpioInitStruct.Mode = GPIO_MODE_AF_PP;
 	colorConfig->gpioInitStruct.Pull = GPIO_NOPULL;//GPIO_PULLDOWN;
-	colorConfig->gpioInitStruct.Speed = GPIO_SPEED_FAST;
+	colorConfig->gpioInitStruct.Speed = GPIO_SPEED_LOW;
 	colorConfig->gpioInitStruct.Alternate = colorConfig->afNum; //ex: PA5 AF is GPIO_AF1_TIM2;
 	HAL_GPIO_DeInit(colorConfig->port, colorConfig->gpioInitStruct.Pin);
 
@@ -382,7 +382,7 @@ void RGB_LED_EnterShutdown(void)
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_SetColor()
 ** DESCRIPTION: set the three color pins pwm duty cycle of the rgb led to change color
-** NOTE:		color variable is struct that just defines three unsigned char representing red, green and blue - range (0 - 255)
+** NOTE:		color variable is struct that just defines three int representing red, green and blue - range (0 - 255)
  *
 *********************************************************************************** */
 void RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
@@ -391,6 +391,17 @@ void RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
 		RGB_LED_ErrorHandler();
 		return;
 	}
+	//make sure rgb values between 0 - 255
+	//red
+	if(color->red < 0){color->red = 0;}
+	else if(color->red > 255){color->red = 255;}
+	//green
+	if(color->green < 0){color->green = 0;}
+	else if(color->green > 255){color->green = 255;}
+	//blue
+	if(color->blue < 0){color->blue = 0;}
+	else if(color->blue > 255){color->blue = 255;}
+
 	//update RED pin of RGB LED - get the pwm duty cycle % equivalent of the 0 - 255 color value
 	float duty_cycle = RGB_PWM_OFFSET_RED + (color->red * RGB_TO_PWM_SCALE_RED); //ex: 240 * (100% / 255) = 94.1 % duty cycle (brightness %)
 	RGB_LED_SetDutyCycle(duty_cycle, &RgbLedConfigs[rgbnum].red);
@@ -410,7 +421,7 @@ void RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
 /* ********************************************************************************
 ** FUNCTION NAME: RGB_LED_GetColor()
 ** DESCRIPTION: get the current color settings of the rgb led
-** NOTE:		color variable is struct that just defines three unsigned char representing red, green and blue - range (0 - 255)
+** NOTE:		color variable is struct that just defines three int representing red, green and blue - range (0 - 255)
  *
 *********************************************************************************** */
 void RGB_LED_GetColor(int rgbnum, rgb_color_t * color)
@@ -422,11 +433,11 @@ void RGB_LED_GetColor(int rgbnum, rgb_color_t * color)
 	//RED - get red color rgb value 0 - 255
 	float duty_cycle=0.0;
 	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].red);
-	color->red = (duty_cycle - RGB_PWM_OFFSET_RED) / RGB_TO_PWM_SCALE_BLUE;
+	color->red = (duty_cycle - RGB_PWM_OFFSET_RED) / RGB_TO_PWM_SCALE_RED;
 
 	//GREEN
 	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].green);
-	color->green = (duty_cycle - RGB_PWM_OFFSET_GREEN) / RGB_TO_PWM_SCALE_BLUE;
+	color->green = (duty_cycle - RGB_PWM_OFFSET_GREEN) / RGB_TO_PWM_SCALE_GREEN;
 
 	//BLUE
 	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].blue);
@@ -492,16 +503,16 @@ float RGB_LED_GetDutyCycle(rgb_led_color_conf_t * colorConfig){
 	//Now update the duty cycle by updating the pulse value, the timer will update the duty cycle after it completes its most recent period capture compare
 	//TIMx->CCR1 = OC_Config->Pulse
 	if(colorConfig->timChannel==TIM_CHANNEL_1){
-		duty_cycle_pulses = colorConfig->timHandle.Instance->CCR1; //this is the PULSE value that is essentially the duty cycle in clocks of the pwm
+		duty_cycle_pulses = colorConfig->pwmConfig.Pulse; //this is the PULSE value that is essentially the duty cycle in clocks of the pwm
 	}
 	else if(colorConfig->timChannel==TIM_CHANNEL_2){
-		duty_cycle_pulses =colorConfig->timHandle.Instance->CCR2;
+		duty_cycle_pulses =colorConfig->pwmConfig.Pulse;;
 	}
 	else if(colorConfig->timChannel==TIM_CHANNEL_3){
-		duty_cycle_pulses = colorConfig->timHandle.Instance->CCR3;
+		duty_cycle_pulses = colorConfig->pwmConfig.Pulse;;
 	}
 	else if(colorConfig->timChannel==TIM_CHANNEL_4){
-		duty_cycle_pulses = colorConfig->timHandle.Instance->CCR4;
+		duty_cycle_pulses = colorConfig->pwmConfig.Pulse;;
 	}
 
 	duty_cycle_percent = duty_cycle_pulses * 100 / timer_period;

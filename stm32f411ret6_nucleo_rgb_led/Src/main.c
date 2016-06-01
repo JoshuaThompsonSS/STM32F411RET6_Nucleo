@@ -185,6 +185,7 @@ int main(void)
   FUNCTIONAL_RGB_LED_InitOnSeq(rgbHandle.sequence);
   rgbHandle.sequence->enabled = true;
   rgb_led_step_t * step;
+
   while (1)
   {
 	  //Interrupt will toggle led (GPIOA 5) when button on GPIOC 13 is pressed
@@ -192,20 +193,19 @@ int main(void)
 	  //when the interrupt is generated on GPIOC pin 13 (button)
 
 	  //continuously dim and then brighten LED
+
 	  wait_sec(0.1); //update duty cycle until 100% then restart
-	  //RGB_LED_SetColor(FUNC_RGB_LED_NUM, &color);
-	  //color.red += 10; color.green += 10; color.blue += 10;
-	  //if(color.red >= 255){color.red = 0;} //restart after reaching 100%t
-	  //if(color.green >= 255){color.green = 0;} //restart after reaching 100% brightness
-	  //if(color.blue >= 255){color.blue = 0;} //restart after reaching 100% brightness
+
 	  if(rgbHandle.sequence->enabled){
 		  int stepnum = rgbHandle.sequence->current_step_num;
 		  step = &rgbHandle.sequence->steps[stepnum];
 		  step->func_handler(step);
 		  if(step->complete){
 			  rgbHandle.sequence->current_step_num = step->next_step_num;
+			  step->complete = false;
 		  }
 	  }
+
 
 
   }

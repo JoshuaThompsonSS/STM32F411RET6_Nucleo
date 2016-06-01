@@ -15,6 +15,7 @@
 #define RGB_SOLID_RED			255
 #define RGB_SOLID_GREEN			255
 #define RGB_SOLID_BLUE			255
+#define MIN_COLOR_DIFF			10
 
 #define MAX_RGB_STEPS			10 //max steps in an rgb led sequence (ex: ramp, hold, repeat...etc)
 

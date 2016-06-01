@@ -23,8 +23,8 @@
 *     if sink is positive voltage
 *     if sink is groudn then just do: 0% + 240*(100%/255) = 94%
 */
-#define RGB_TO_PWM_SCALE_RED	(-60.0/255.0)
-#define RGB_PWM_OFFSET_RED		60.0
+#define RGB_TO_PWM_SCALE_RED	(-100.0/255.0)
+#define RGB_PWM_OFFSET_RED		100.0
 #define RGB_TO_PWM_SCALE_GREEN	(-100.0/255.0)
 #define RGB_PWM_OFFSET_GREEN	100.0
 #define RGB_TO_PWM_SCALE_BLUE	(-100.0/255.0)
@@ -52,7 +52,7 @@
  * Period = Period(Cycles)  / timer_freq -- Period(cycles) is the value used in the TIM register config
  * So Period(Cycles) = Period * timer_freq
  */
-#define RGB_PWMFREQ_DFLT	1000 //1000 Hz (1KHz)
+#define RGB_PWMFREQ_DFLT	50 //50 - 200 Hz is good (don't go over 500 Hz or wont work correctly)
 
 /* Duty_Cycle
  * Pwm Duty Cycle = 100% * Pulse(Cycles) / Period(Cycles)
@@ -143,9 +143,9 @@ rgb_led_conf_t RgbLedConfigs[RGB_LED_COUNT];
 
 //color variable
 typedef struct rgb_color_t {
-	unsigned char red; //rgb range: 0 - 255
-	unsigned char green;
-	unsigned char blue;
+	int red; //rgb range: 0 - 255
+	int green;
+	int blue;
 } rgb_color_t;
 
 

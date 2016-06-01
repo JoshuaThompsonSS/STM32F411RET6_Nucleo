@@ -41,10 +41,57 @@ rgb_color_t GreenColor = {0, RGB_SOLID_BLUE, 0};
 rgb_color_t WhiteColor = {RGB_SOLID_RED, RGB_SOLID_GREEN, RGB_SOLID_BLUE};
 rgb_color_t BlackColor = {0, 0, 0};
 
+
+
 /*
  ********  FUNCTION DECLARATION & DEFINTION ********
  */
-void FUNCTIONAL_REG_LED_InitHandle(void){
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_ErrorHandler()
+** DESCRIPTION:
+** 				- Handle those errors!
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_ErrorHandler(void){
+	//TODO: handle stuff
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_StartService()
+** DESCRIPTION:
+** 				-Initialize driver, interrupt routine and structures and then start the rgb led sequence interrupt driven routine
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_StartService(void){
+	//init rgb led driver handle (rgbHandle)
+	FUNCTIONAL_RGB_LED_InitHandle();
+	//init driver
+	rgbHandle.init();
+	//start driver
+	rgbHandle.start();
+
+	rgbHandle.sequence = &onSequence;
+	FUNCTIONAL_RGB_LED_InitOnSeq(rgbHandle.sequence);
+	rgbHandle.sequence->enabled = true;
+	//init timer interrupt
+	FUNCTIONAL_RGB_LED_InitInterruptTimer();
+	//start timer interrupt
+	FUNCTIONAL_RGB_LED_StartInterruptTimer();
+
+	return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitHandle()
+** DESCRIPTION:
+** 				-Initialize the rgb led driver handle that provides easy access to common rgb led driver functions
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_InitHandle(void){
 	//rgb driver handler
 	rgbHandle.init = FUNCTIONAL_RGB_LED_Init;
 	rgbHandle.de_init = FUNCTIONAL_RGB_LED_DeInit;
@@ -56,6 +103,7 @@ void FUNCTIONAL_REG_LED_InitHandle(void){
 	rgbHandle.set_color = FUNCTIONAL_RGB_LED_SetColor;
 	return;
 }
+
 void FUNCTIONAL_RGB_LED_Init(void){
 	RGB_LED_Init(FUNC_RGB_LED_NUM);
 	return;
@@ -143,6 +191,7 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 	rgb_led_step_t ramp_step2;
 	ramp_step2.time = 0;
 	ramp_step2.step_type = RAMP_STEP;
+	ramp_step2.mode = RGB_LIN_MODE; //linear ramp output
 	ramp_step2.current_step_num = 1;
 	ramp_step2.color_setpoint = WhiteColor;
 	ramp_step2.duration = 1;
@@ -167,6 +216,7 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 	//Ramp Step - increase color to white at a duration of 1 sec
 	rgb_led_step_t ramp_step4;
 	ramp_step4.step_type = RAMP_STEP;
+	ramp_step4.mode = RGB_LIN_MODE; //linear ramp output
 	ramp_step4.time = 0;
 	ramp_step4.current_step_num = 3;
 	ramp_step4.color_setpoint = BlackColor;
@@ -249,6 +299,7 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 	rgb_color_t dlta_clr;
 	FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
 	if(step->time <= 0){
+		//get the scale used to increment the led (just run this once)
 		step->scales.red = dlta_clr.red / step->duration;
 		step->scales.green = dlta_clr.green / step->duration;
 		step->scales.blue = dlta_clr.blue / step->duration;
@@ -263,11 +314,8 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 		return;
 	}
 	else{
-		//increment color and update rgb led driver pwm -- keep doing this until color setpoit reached
-		step->color.red += STEP_TIME_PER_CYCLE * step->scales.red;
-		step->color.green += STEP_TIME_PER_CYCLE * step->scales.green;
-		step->color.blue += STEP_TIME_PER_CYCLE * step->scales.blue;
-		FUNCTIONAL_RGB_LED_SetColor(&step->color);
+		//increment color and update rgb led driver pwm -- keep doing this until color setpoint reached
+		FUNCTIONAL_RGB_LED_GenStepRampOutput(step); //this will generate linear, exponential or log output based on step.mode attribute
 	}
 
 	return;
@@ -327,7 +375,80 @@ void FUNCTIONAL_RGB_LED_Repeat(rgb_led_step_t * step){
 	return;
 }
 
-//Sequence routine service - should be called at least every 50 ms
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_GenStepRampOutput()
+** DESCRIPTION:
+** 				- Generate color ramp output based on step mode (exp, log, linear..etc)
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_GenStepRampOutput(rgb_led_step_t * step){
+	switch (step->mode){
+	case RGB_LIN_MODE:
+		FUNCTIONAL_RGB_LED_SetLinearOutput(step);
+		break;
+	case RGB_EXP_MODE:
+		FUNCTIONAL_RGB_LED_SetExpOutput(step);
+		break;
+	case RGB_LOG_MODE:
+		FUNCTIONAL_RGB_LED_SetLogOutput(step);
+		break;
+	case RGB_NO_MODE:
+		FUNCTIONAL_RGB_LED_SetColor(&step->color);
+		break;
+	default:
+		FUNCTIONAL_RGB_LED_ErrorHandler();
+
+	}
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_SetLinearOutput()
+** DESCRIPTION:
+** 				- Generate linear color output from step data
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_SetLinearOutput(rgb_led_step_t * step){
+	step->color.red += STEP_TIME_PER_CYCLE * step->scales.red;
+	step->color.green += STEP_TIME_PER_CYCLE * step->scales.green;
+	step->color.blue += STEP_TIME_PER_CYCLE * step->scales.blue;
+	FUNCTIONAL_RGB_LED_SetColor(&step->color);
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_SetExpOutput()
+** DESCRIPTION:
+** 				- Generate exponential color output from step data
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step){
+	//TODO: generate exponential output
+	FUNCTIONAL_RGB_LED_SetColor(&step->color);
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_SetLogOutput()
+** DESCRIPTION:
+** 				- Generate logarithmic color output from step data
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_SetLogOutput(rgb_led_step_t * step){
+	//TODO: generate logarithmic output
+	FUNCTIONAL_RGB_LED_SetColor(&step->color);
+}
+
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitInterruptTimer()
+** DESCRIPTION:
+** 				- Setup the timer based interrupt that will call the FUNCTIONAL_RGB_LED_SequenceHandler function to update
+** 				  the rgb led colors based on the programmed rgb led functionality (on, off, bluetooth connecting...etc)
+** NOTE:
+ *
+*********************************************************************************** */
 void FUNCTIONAL_RGB_LED_InitInterruptTimer(void){
 	RGBInterruptTimHandle.Instance = FUNC_RGB_INT_TIM_REG;
 	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT;
@@ -340,8 +461,48 @@ void FUNCTIONAL_RGB_LED_InitInterruptTimer(void){
 
 	HAL_TIM_Base_Init(&RGBInterruptTimHandle); //this will also call HAL_TIM_Base_MspInit to init clock and interrupts
 
+	//activate TIM / start with interrupt by calling FUNCTIONAL_RGB_LED_StartInterruptTimer
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitInterruptTimer()
+** DESCRIPTION:
+** 				- Setup the timer based interrupt that will call the FUNCTIONAL_RGB_LED_SequenceHandler function to update
+** 				  the rgb led colors based on the programmed rgb led functionality (on, off, bluetooth connecting...etc)
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_DeInitInterruptTimer(void){
+
+	HAL_TIM_Base_DeInit(&RGBInterruptTimHandle); //this will also call HAL_TIM_Base_MspDeInit to de init clock and interrupts
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_StartInterruptTimer()
+** DESCRIPTION:
+** 				- Start the timer based interrupt that will call the FUNCTIONAL_RGB_LED_SequenceHandler function to update
+** 				  the rgb led colors based on the programmed rgb led functionality (on, off, bluetooth connecting...etc)
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_StartInterruptTimer(void){
+	//make sure you already called the FUNCTIONAL_RGB_LED_InitInterruptTimer function
+
 	//activate TIM / start with interrupt
 	HAL_TIM_Base_Start_IT(&RGBInterruptTimHandle);
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_StopInterruptTimer()
+** DESCRIPTION:
+** 				- Stop the timer based interrupt that calls the FUNCTIONAL_RGB_LED_SequenceHandler function
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_StopInterruptTimer(void){
+	//stop the TIMx interrupt
+	HAL_TIM_Base_Stop_IT(&RGBInterruptTimHandle);
 }
 
 /* ********************************************************************************
@@ -383,6 +544,12 @@ void  HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
 	RGB_LED_EnTimClk(htim->Instance);
 	HAL_NVIC_SetPriority((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ), 0x0F, 0x00);
 	HAL_NVIC_EnableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
+}
+
+//called by Timer DeInitialization
+void  HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef *htim){
+	RGB_LED_DisTimClk(htim->Instance);
+	HAL_NVIC_DisableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
 }
 
 

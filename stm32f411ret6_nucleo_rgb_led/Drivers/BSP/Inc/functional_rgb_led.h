@@ -66,7 +66,7 @@
  */
 
 //rgb function modes (logarithmic, exponential, linear)
-typedef enum rgb_modes_t {RGB_LOG_MODE, RGB_EXP_MODE, RGB_LIN_MODE, RGB_NO_MODE} rgb_modes_t;
+typedef enum rgb_modes_t {RGB_NO_MODE, RGB_LIN_MODE, RGB_LOG_MODE, RGB_EXP_MODE} rgb_modes_t;
 typedef enum rgb_step_type_t {RAMP_STEP=RAMP_STEP_TYPE, HOLD_STEP=HOLD_STEP_TYPE, SETPOINT_STEP=SETPOINT_STEP_TYPE, REPEAT_STEP=REPEAT_STEP_TYPE} rgb_step_type_t;
 typedef enum rgb_state_colors_t {BLACK=BLACK_CLR, WHITE=WHITE_CLR, RED=RED_CLR, BLUE=BLUE_CLR, GREEN=GREEN_CLR} rgb_state_colors_t;
 typedef enum rgb_seq_type_t {ON=ON_SEQ_TYPE, OFF=OFF_SEQ_TYPE, CRITICAL=ON_SEQ_TYPE, CHARGING=CHRNG_SEQ_TYPE, CHARGED=CHRGD_SEQ_TYPE,
@@ -159,7 +159,9 @@ TIM_HandleTypeDef RGBInterruptTimHandle;
 /*
  * --------Function Declarations
 */
-void FUNCTIONAL_REG_LED_InitHandle(void);
+void FUNCTIONAL_RGB_LED_ErrorHandler(void);
+void FUNCTIONAL_RGB_LED_StartService(void);
+void FUNCTIONAL_RGB_LED_InitHandle(void);
 void FUNCTIONAL_RGB_LED_Init(void);
 void FUNCTIONAL_RGB_LED_DeInit(void);
 void FUNCTIONAL_RGB_LED_Start(void);
@@ -193,12 +195,18 @@ void FUNCTIONAL_RGB_LED_Hold(rgb_led_step_t * step);
 void FUNCTIONAL_RGB_LED_Setpoint(rgb_led_step_t * step);
 void FUNCTIONAL_RGB_LED_Repeat(rgb_led_step_t * step);
 
-//Sequence routine service - should be called at least every 50 ms
+//Ramp output functions
+void FUNCTIONAL_RGB_LED_GenStepRampOutput(rgb_led_step_t * step);
+void FUNCTIONAL_RGB_LED_SetLinearOutput(rgb_led_step_t * step);
+void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step);
+void FUNCTIONAL_RGB_LED_SetLogOutput(rgb_led_step_t * step);
 
+//Sequence interrupt routines that is in charge of running the main rgb led output service
 void FUNCTIONAL_RGB_LED_InitInterruptTimer(void);
+void FUNCTIONAL_RGB_LED_DeInitInterruptTimer(void);
+void FUNCTIONAL_RGB_LED_StartInterruptTimer(void);
+void FUNCTIONAL_RGB_LED_StopInterruptTimer(void);
 void FUNCTIONAL_RGB_LED_SequenceHandler(void);
-
-
 
 
 #endif /* _RGB_LED_H_ */

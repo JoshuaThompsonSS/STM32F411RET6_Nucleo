@@ -186,8 +186,6 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
-  initTimInterrupt();
-
   /* Initialize LED*/
   //initLED();
 
@@ -197,16 +195,8 @@ int main(void)
   /* Initialize PWM for Functional RGB LED*/
 
 
-  FUNCTIONAL_REG_LED_InitHandle();
-  rgbHandle.init();
-  rgbHandle.start();
-  //FUNCTIONAL_RGB_LED_Init();
-  //FUNCTIONAL_RGB_LED_Start();
-  rgbHandle.sequence = &onSequence;
-  FUNCTIONAL_RGB_LED_InitOnSeq(rgbHandle.sequence);
-  rgbHandle.sequence->enabled = true;
-  rgb_led_step_t * step;
-  FUNCTIONAL_RGB_LED_InitInterruptTimer();
+  FUNCTIONAL_RGB_LED_StartService();
+
 
   while (1)
   {

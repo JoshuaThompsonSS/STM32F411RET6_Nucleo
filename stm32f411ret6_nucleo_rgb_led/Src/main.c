@@ -44,6 +44,7 @@
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef TimHandle;
 TIM_OC_InitTypeDef PwmConfig;
+TIM_HandleTypeDef LEDTimHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -59,6 +60,26 @@ void SystemClock_Config(void);
 
 /* Function prototypes -----------------------------------------------*/
 
+//Initialize timer used to generate interrupt
+void initTimInterrupt(void){
+	//Make sure HAL_TIM_Base_MsInit() code is implemented (GPIO led en, timer clock enable...etc)
+	//to use the Timer to generate a simple time base
+
+	LEDTimHandle.Instance = TIM2;
+	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT;
+	int32_t timer_period = timer_freq / 1; //RGB_PWMFREQ_DFLT;
+	LEDTimHandle.Init.Period = timer_period;
+	LEDTimHandle.Init.Prescaler = RGB_PRESCALER_DFLT;
+	LEDTimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	LEDTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+	LEDTimHandle.Init.RepetitionCounter = 0;
+
+	HAL_TIM_Base_Init(&LEDTimHandle);
+
+	//activate TIM / start with interrupt
+	HAL_TIM_Base_Start_IT(&LEDTimHandle);
+
+}
 
 //Initialize the board debug led as output
 void initLED(void){
@@ -165,17 +186,17 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  initTimInterrupt();
+
   /* Initialize LED*/
   //initLED();
 
   /* Initialize Button Interrupt */
   //initButtonInterrupt();
 
-  /* Initialize PWM on TIM2 Channel 2 */
-  //initPwmTimer();
-  //RGB_LED_Init(FUNC_RGB_LED_NUM);
-  //RGB_LED_Start(FUNC_RGB_LED_NUM);
-  //rgb_color_t color = {0, 30,0};
+  /* Initialize PWM for Functional RGB LED*/
+
+
   FUNCTIONAL_REG_LED_InitHandle();
   rgbHandle.init();
   rgbHandle.start();
@@ -185,15 +206,19 @@ int main(void)
   FUNCTIONAL_RGB_LED_InitOnSeq(rgbHandle.sequence);
   rgbHandle.sequence->enabled = true;
   rgb_led_step_t * step;
+  FUNCTIONAL_RGB_LED_InitInterruptTimer();
 
   while (1)
   {
-	  //Interrupt will toggle led (GPIOA 5) when button on GPIOC 13 is pressed
-	  //Interrupt handler is EXTI15_10_IRQHandler (defined in stm32f4xx_it.c) and calls the led toggle code
-	  //when the interrupt is generated on GPIOC pin 13 (button)
 
+	  /*
+	  int timerValue = __HAL_TIM_GET_COUNTER(&LEDTimHandle);
+	  if(timerValue > 3){
+		  toggleLED();
+	  }
+	  */
 	  //continuously dim and then brighten LED
-
+	  /*
 	  wait_sec(0.1); //update duty cycle until 100% then restart
 
 	  if(rgbHandle.sequence->enabled){
@@ -205,10 +230,11 @@ int main(void)
 			  step->complete = false;
 		  }
 	  }
+	  */
 
 
 
-  }
+    }
 
 }
 
@@ -254,6 +280,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		GPIOA->ODR ^= GPIO_PIN_5;
 	}
 }
+
+
 /* USER CODE END 4 */
 
 #ifdef USE_FULL_ASSERT

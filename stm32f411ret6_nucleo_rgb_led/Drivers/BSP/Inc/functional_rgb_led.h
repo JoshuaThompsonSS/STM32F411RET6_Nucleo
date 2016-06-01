@@ -11,6 +11,7 @@
 /*
  * ------Constants / Definitions
 */
+
 //RGB Colors
 #define RGB_SOLID_RED			255
 #define RGB_SOLID_GREEN			255
@@ -20,9 +21,10 @@
 #define MAX_RGB_STEPS			10 //max steps in an rgb led sequence (ex: ramp, hold, repeat...etc)
 
 //Service / Timer
-#define SERVICE_TIMER_REG		TIM2
-#define SERVICE_TIMER_CH		TIM_CH_2
-#define STEP_TIME_PER_CYCLE		0.1 //sec per timer interrupt -- TODO: need to define this appropriately
+//TIM REG Used for Interrupt (this is what runs the rgb led sequence)
+#define FUNC_RGB_INT_TIM_REG	TIM4 //this must match the TIMx_IRQHandler definition in the function_rgb_led.c file
+#define FUNC_RGB_INT_TIM_IRQ	TIM4_IRQn
+#define STEP_TIME_PER_CYCLE		0.02 //(1.0/RGB_PWMFREQ_DFLT) //sec per timer interrupt -- TODO: need to define this appropriately
 
 //Common sequence colors
 #define BLACK_CLR				0
@@ -148,6 +150,9 @@ rgb_led_sequence_t auxInShoe1Sequence;
 rgb_led_sequence_t fwUpgradeSequence;
 rgb_led_sequence_t fwUpgradeCompleteSequence;
 
+//Timer Interrupt that runs in background
+TIM_HandleTypeDef RGBInterruptTimHandle;
+
 
 
 
@@ -188,8 +193,10 @@ void FUNCTIONAL_RGB_LED_Hold(rgb_led_step_t * step);
 void FUNCTIONAL_RGB_LED_Setpoint(rgb_led_step_t * step);
 void FUNCTIONAL_RGB_LED_Repeat(rgb_led_step_t * step);
 
-//Sequence routine service - should be called at least every 100 ms by SysTick_Handler in stm32f4xx_it.c
-void FUNCTIONAL_RGB_LED_IRQHandler(void);
+//Sequence routine service - should be called at least every 50 ms
+
+void FUNCTIONAL_RGB_LED_InitInterruptTimer(void);
+void FUNCTIONAL_RGB_LED_SequenceHandler(void);
 
 
 

@@ -327,9 +327,62 @@ void FUNCTIONAL_RGB_LED_Repeat(rgb_led_step_t * step){
 	return;
 }
 
-//Sequence routine service - should be called at least every 100 ms by SysTick_Handler in stm32f4xx_it.c
-void FUNCTIONAL_RGB_LED_IRQHandler(void){
+//Sequence routine service - should be called at least every 50 ms
+void FUNCTIONAL_RGB_LED_InitInterruptTimer(void){
+	RGBInterruptTimHandle.Instance = FUNC_RGB_INT_TIM_REG;
+	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT;
+	int32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT; //clock will generate interrupt every 20 millisec
+	RGBInterruptTimHandle.Init.Period = timer_period;
+	RGBInterruptTimHandle.Init.Prescaler = RGB_PRESCALER_DFLT;
+	RGBInterruptTimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	RGBInterruptTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+	RGBInterruptTimHandle.Init.RepetitionCounter = 0;
+
+	HAL_TIM_Base_Init(&RGBInterruptTimHandle); //this will also call HAL_TIM_Base_MspInit to init clock and interrupts
+
+	//activate TIM / start with interrupt
+	HAL_TIM_Base_Start_IT(&RGBInterruptTimHandle);
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_SequenceHandler()
+** DESCRIPTION:
+** 				- Runs the sequence step and increments rgb led colors according to step equation
+** NOTE:		- You can use the timer interrupt to call this or just call this in a loop but then you need to update the STEP_TIME_PER_CYCLE
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_SequenceHandler(void){
+	if(rgbHandle.sequence!= NULL && rgbHandle.sequence->enabled){
+		rgb_led_step_t * step;
+		 //this just calls the current function pointed to by the step and passes in the step parameters to the function
+		 //for ex, the function might be a hold function that just keeps the color at a certain setpoint until the duration is complete
+		 //when the duration completes the step.complete attribute is set to true and then the sequence jumps to the next step / function
+		 //when the sequence completes the final step is starts all over again from the first step
+		  int stepnum = rgbHandle.sequence->current_step_num;
+		  step = &rgbHandle.sequence->steps[stepnum];
+		  step->func_handler(step);
+		  if(step->complete){
+			  rgbHandle.sequence->current_step_num = step->next_step_num;
+			  step->complete = false;
+		  }
+	  }
 	return;
+}
+
+void TIM4_IRQHandler(void){
+	HAL_TIM_IRQHandler(&RGBInterruptTimHandle);
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	//run rgb led sequence routine
+	FUNCTIONAL_RGB_LED_SequenceHandler();
+}
+
+//called by Timer Initialization
+void  HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
+	RGB_LED_EnTimClk(htim->Instance);
+	HAL_NVIC_SetPriority((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ), 0x0F, 0x00);
+	HAL_NVIC_EnableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
 }
 
 

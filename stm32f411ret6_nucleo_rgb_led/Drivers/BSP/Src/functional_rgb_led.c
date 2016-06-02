@@ -48,6 +48,18 @@ rgb_color_t BlackColor = {0, 0, 0};
  */
 
 /* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_isRunning()
+** DESCRIPTION:
+** 				- Handle those errors!
+** NOTE:
+ *
+*********************************************************************************** */
+bool FUNCTIONAL_RGB_LED_isRunning(void){
+	//TODO: handle stuff
+	return funcRgbStatus.running;
+}
+
+/* ********************************************************************************
 ** FUNCTION NAME: FUNCTIONAL_RGB_LED_ErrorHandler()
 ** DESCRIPTION:
 ** 				- Handle those errors!
@@ -56,7 +68,9 @@ rgb_color_t BlackColor = {0, 0, 0};
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_ErrorHandler(void){
 	//TODO: handle stuff
+	funcRgbStatus.error = true;
 }
+
 
 /* ********************************************************************************
 ** FUNCTION NAME: FUNCTIONAL_RGB_LED_StartService()
@@ -68,18 +82,51 @@ void FUNCTIONAL_RGB_LED_ErrorHandler(void){
 void FUNCTIONAL_RGB_LED_StartService(void){
 	//init rgb led driver handle (rgbHandle)
 	FUNCTIONAL_RGB_LED_InitHandle();
+	//init all the common functional rgb led sequences
+	FUNCTIONAL_RGB_LED_InitSequences();
 	//init driver
 	rgbHandle.init();
 	//start driver
 	rgbHandle.start();
 
 	rgbHandle.sequence = &onSequence;
-	FUNCTIONAL_RGB_LED_InitOnSeq(rgbHandle.sequence);
+
 	rgbHandle.sequence->enabled = true;
 	//init timer interrupt
 	FUNCTIONAL_RGB_LED_InitInterruptTimer();
 	//start timer interrupt
 	FUNCTIONAL_RGB_LED_StartInterruptTimer();
+	funcRgbStatus.running = true;
+
+	return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_StopService()
+** DESCRIPTION:
+** 				-DeInitialize driver, de-initialize interrupt routine and then stop the rgb led sequence interrupt driven routine
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_StopService(void){
+	//start driver
+	rgbHandle.stop();
+
+	//init driver
+	rgbHandle.de_init();
+
+	if(rgbHandle.sequence != NULL){
+		rgbHandle.sequence->enabled = false;
+		rgbHandle.sequence = NULL;
+	}
+
+	//stop timer interrupt
+	FUNCTIONAL_RGB_LED_StopInterruptTimer();
+
+	//de-init timer interrupt
+	FUNCTIONAL_RGB_LED_DeInitInterruptTimer();
+	funcRgbStatus.running = false;
+
 
 	return;
 }
@@ -104,11 +151,47 @@ void FUNCTIONAL_RGB_LED_InitHandle(void){
 	return;
 }
 
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitSequences()
+** DESCRIPTION:
+** 				-Initialize the common functional rgb led sequences
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_InitSequences(void){
+	//rgb led sequences commonly used
+	FUNCTIONAL_RGB_LED_InitOnSeq(&onSequence);
+	FUNCTIONAL_RGB_LED_InitOffSeq(&offSequence);
+	FUNCTIONAL_RGB_LED_InitCriticalSeq(&criticalBattSequence);
+	FUNCTIONAL_RGB_LED_InitBTConnectedSeq(&btConnectedSequence);
+	FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(&btDiscoverableSequence);
+	FUNCTIONAL_RGB_LED_InitBTPairingSeq(&btPairingSequence);
+	FUNCTIONAL_RGB_LED_InitBTConnectingSeq(&btConnectingSequence);
+	FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(&auxInShoeSequence);
+	FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(&auxInShoe1Sequence);
+	FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(&auxInShoeSequence);
+	FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(&fwUpgradeCompleteSequence);
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_Init()
+** DESCRIPTION:
+** 				-Initialize the functional rgb led driver
+** NOTE:
+ *
+*********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Init(void){
 	RGB_LED_Init(FUNC_RGB_LED_NUM);
 	return;
 }
 
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_Start()
+** DESCRIPTION:
+** 				-Start the functional rgb led driver
+** NOTE:
+ *
+*********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Start(void)
 {
 	RGB_LED_Start(FUNC_RGB_LED_NUM);
@@ -249,34 +332,34 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 	sequence->restart = true; //loop over and over
 
 }
-void FUNCTIONAL_RGB_LED_InitOffSeq(void){
+void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitCriticalSeq(void){
+void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(void){
+void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(void){
+void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitBTPairingSeq(void){
+void FUNCTIONAL_RGB_LED_InitBTPairingSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(void){
+void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(void){
+void FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(void){
+void FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(void){
+void FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(rgb_led_sequence_t * sequence){
 
 }
-void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(void){
+void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(rgb_led_sequence_t * sequence){
 
 }
 
@@ -513,17 +596,18 @@ void FUNCTIONAL_RGB_LED_StopInterruptTimer(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SequenceHandler(void){
-	if(rgbHandle.sequence!= NULL && rgbHandle.sequence->enabled){
+	rgb_led_sequence_t * sequence = rgbHandle.sequence;
+	if(sequence!= NULL && sequence->enabled){
 		rgb_led_step_t * step;
 		 //this just calls the current function pointed to by the step and passes in the step parameters to the function
 		 //for ex, the function might be a hold function that just keeps the color at a certain setpoint until the duration is complete
 		 //when the duration completes the step.complete attribute is set to true and then the sequence jumps to the next step / function
 		 //when the sequence completes the final step is starts all over again from the first step
-		  int stepnum = rgbHandle.sequence->current_step_num;
-		  step = &rgbHandle.sequence->steps[stepnum];
+		  int stepnum = sequence->current_step_num;
+		  step = &(sequence->steps[stepnum]);
 		  step->func_handler(step);
 		  if(step->complete){
-			  rgbHandle.sequence->current_step_num = step->next_step_num;
+			  sequence->current_step_num = step->next_step_num;
 			  step->complete = false;
 		  }
 	  }

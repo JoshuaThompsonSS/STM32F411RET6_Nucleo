@@ -75,6 +75,13 @@ typedef enum rgb_seq_type_t {ON=ON_SEQ_TYPE, OFF=OFF_SEQ_TYPE, CRITICAL=ON_SEQ_T
 								FW_UPGRADE_COMPLETE=FWUPCPLT_SEQ_TYPE
 }rgb_seq_type_t;
 
+//functional rgb status
+typedef struct func_rgb_led_status_t {
+	bool running;
+	bool error;
+	bool paused;
+}func_rgb_led_status_t;
+
 //rgb color ramp scale
 //ex: red_scale = (color setpoint - current color) / duration
 typedef struct color_scales_t{
@@ -129,7 +136,12 @@ typedef struct rgb_led_handle_t {
 	rgb_led_sequence_t * sequence;
 }rgb_led_handle_t;
 
+//rgb led driver handle
 rgb_led_handle_t rgbHandle;
+
+//running status
+func_rgb_led_status_t funcRgbStatus;
+
 
 /*
  * Common Sequences - based on 'Functional LED Behavior' documented in Confluence - created by Eddie Borjas
@@ -159,9 +171,12 @@ TIM_HandleTypeDef RGBInterruptTimHandle;
 /*
  * --------Function Declarations
 */
+bool FUNCTIONAL_RGB_LED_isRunning(void);
 void FUNCTIONAL_RGB_LED_ErrorHandler(void);
 void FUNCTIONAL_RGB_LED_StartService(void);
+void FUNCTIONAL_RGB_LED_StopService(void);
 void FUNCTIONAL_RGB_LED_InitHandle(void);
+void FUNCTIONAL_RGB_LED_InitSequences(void);
 void FUNCTIONAL_RGB_LED_Init(void);
 void FUNCTIONAL_RGB_LED_DeInit(void);
 void FUNCTIONAL_RGB_LED_Start(void);
@@ -177,16 +192,16 @@ void FUNCTIONAL_RGB_LED_InitSetpointStep(rgb_led_step_t * step);
 void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step);
 //Sequences
 void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence);
-void FUNCTIONAL_RGB_LED_InitOffSeq(void);
-void FUNCTIONAL_RGB_LED_InitCriticalSeq(void);
-void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(void);
-void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(void);
-void FUNCTIONAL_RGB_LED_InitBTPairingSeq(void);
-void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(void);
-void FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(void);
-void FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(void);
-void FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(void);
-void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(void);
+void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitBTPairingSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(rgb_led_sequence_t * sequence);
 
 
 //Step functions to create specific RGB LED sequences

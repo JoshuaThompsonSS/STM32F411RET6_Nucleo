@@ -200,7 +200,13 @@ int main(void)
 
   while (1)
   {
-
+	  wait_sec(10);
+	  if(FUNCTIONAL_RGB_LED_isRunning()){
+		  FUNCTIONAL_RGB_LED_StopService();
+	  }
+	  else{
+		  FUNCTIONAL_RGB_LED_StartService();
+	  }
 	  /*
 	  int timerValue = __HAL_TIM_GET_COUNTER(&LEDTimHandle);
 	  if(timerValue > 3){

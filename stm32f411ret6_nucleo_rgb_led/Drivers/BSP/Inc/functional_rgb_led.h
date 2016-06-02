@@ -11,7 +11,8 @@
 /*
  * ------Constants / Definitions
 */
-
+//RGB Seq Count
+#define RGB_SEQ_COUNT			14
 //RGB Colors
 #define RGB_SOLID_RED			255
 #define RGB_SOLID_GREEN			255
@@ -116,9 +117,10 @@ typedef struct rgb_led_step_t {
 //rgb led step sequence
 typedef struct rgb_led_sequence_t {
 	int current_step_num;
+	int step_count;
 	bool enabled;
 	bool complete;
-	bool restart;
+	bool loop;
 	rgb_seq_type_t seq_type;
 	rgb_led_step_t steps[MAX_RGB_STEPS];
 }rgb_led_sequence_t;
@@ -162,6 +164,12 @@ rgb_led_sequence_t auxInShoe1Sequence;
 rgb_led_sequence_t fwUpgradeSequence;
 rgb_led_sequence_t fwUpgradeCompleteSequence;
 
+//array of sequence pointers
+rgb_led_sequence_t * sequenceList[RGB_SEQ_COUNT];
+
+typedef void (*sequence_init_ptr_t)( rgb_led_sequence_t * );
+sequence_init_ptr_t sequenceInitFuncList[RGB_SEQ_COUNT];
+
 //Timer Interrupt that runs in background
 TIM_HandleTypeDef RGBInterruptTimHandle;
 
@@ -171,6 +179,7 @@ TIM_HandleTypeDef RGBInterruptTimHandle;
 /*
  * --------Function Declarations
 */
+void FUNCTIONAL_RGB_LED_LoadSequnece(rgb_seq_type_t seqType);
 bool FUNCTIONAL_RGB_LED_isRunning(void);
 void FUNCTIONAL_RGB_LED_ErrorHandler(void);
 void FUNCTIONAL_RGB_LED_StartService(void);

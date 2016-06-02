@@ -47,6 +47,18 @@ rgb_color_t BlackColor = {0, 0, 0};
  ********  FUNCTION DECLARATION & DEFINTION ********
  */
 
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_LoadSequence()
+** DESCRIPTION:
+** 				- Load a sequence into the rgbHandle sequence ptr but make sure to stop currently running seq
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType){
+
+}
+
 /* ********************************************************************************
 ** FUNCTION NAME: FUNCTIONAL_RGB_LED_isRunning()
 ** DESCRIPTION:
@@ -160,17 +172,50 @@ void FUNCTIONAL_RGB_LED_InitHandle(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_InitSequences(void){
 	//rgb led sequences commonly used
+	int seqNum = 0;
 	FUNCTIONAL_RGB_LED_InitOnSeq(&onSequence);
+	sequenceList[seqNum] = &onSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitOnSeq;
+
 	FUNCTIONAL_RGB_LED_InitOffSeq(&offSequence);
+	sequenceList[seqNum] = &offSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitOffSeq;
+
 	FUNCTIONAL_RGB_LED_InitCriticalSeq(&criticalBattSequence);
+	sequenceList[seqNum] = &criticalBattSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitCriticalSeq;
+
 	FUNCTIONAL_RGB_LED_InitBTConnectedSeq(&btConnectedSequence);
+	sequenceList[seqNum] = &btConnectedSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTConnectedSeq;
+
 	FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(&btDiscoverableSequence);
+	sequenceList[seqNum] = &btDiscoverableSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq;
+
 	FUNCTIONAL_RGB_LED_InitBTPairingSeq(&btPairingSequence);
+	sequenceList[seqNum] = &btPairingSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTPairingSeq;
+
 	FUNCTIONAL_RGB_LED_InitBTConnectingSeq(&btConnectingSequence);
+	sequenceList[seqNum] = &btConnectingSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTConnectingSeq;
+
 	FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(&auxInShoeSequence);
+	sequenceList[seqNum] = &auxInShoeSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitAUXInShoeSeq;
+
 	FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(&auxInShoe1Sequence);
-	FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(&auxInShoeSequence);
+	sequenceList[seqNum] = &auxInShoe1Sequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq;
+
+	FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(&fwUpgradeSequence);
+	sequenceList[seqNum] = &fwUpgradeSequence;
+	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitFWUpgradeSeq;
+
 	FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(&fwUpgradeCompleteSequence);
+	sequenceList[seqNum] = &fwUpgradeCompleteSequence;
+	sequenceInitFuncList[seqNum] = FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq;
 }
 
 /* ********************************************************************************
@@ -290,49 +335,95 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 	hold_step3.time = 0;
 	hold_step3.current_step_num = 2;
 	hold_step3.color_setpoint = WhiteColor;
-	hold_step3.duration = 1;
+	hold_step3.duration = 2; //TODO: change to 1 sec later
+	hold_step3.next_step_num = 0; //go back to beginning
+	hold_step3.last_step = true;
+	hold_step3.func_handler = FUNCTIONAL_RGB_LED_Hold;
+	hold_step3.complete = false;
+
+	sequence->steps[0] = setpoint_step1;
+	sequence->steps[1] = ramp_step2;
+	sequence->steps[2] = hold_step3;
+	sequence->step_count = 3;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = ON;
+	sequence->loop = false; //don't loop
+
+}
+void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
+	//step 1: setpoint solid black (off)
+	rgb_led_step_t setpoint_step1;
+	setpoint_step1.current_step_num = 0;
+	setpoint_step1.color_setpoint = BlackColor;
+	setpoint_step1.step_type = SETPOINT_STEP;
+	setpoint_step1.next_step_num = 1;
+	setpoint_step1.last_step = false;
+	setpoint_step1.func_handler = FUNCTIONAL_RGB_LED_Setpoint;
+	setpoint_step1.complete = false;
+
+	//step 2: exp ramp 500 ms to red
+	rgb_led_step_t ramp_step2;
+	ramp_step2.time = 0;
+	ramp_step2.step_type = RAMP_STEP;
+	ramp_step2.mode = RGB_LIN_MODE; //linear ramp output - TODO: but change to exp later
+	ramp_step2.current_step_num = 1;
+	ramp_step2.color_setpoint = WhiteColor; //TODO: change color to RedColor later
+	ramp_step2.duration = 0.5; //500 ms
+	ramp_step2.next_step_num = 2;
+	ramp_step2.last_step = false;
+	ramp_step2.func_handler = FUNCTIONAL_RGB_LED_Ramp;
+	ramp_step2.complete = false;
+
+	//step 3: hold 2 sec red
+	rgb_led_step_t hold_step3;
+	hold_step3.step_type = HOLD_STEP;
+	hold_step3.time = 0;
+	hold_step3.current_step_num = 2;
+	hold_step3.color_setpoint = WhiteColor; //TODO: change to RedColor later
+	hold_step3.duration = 2;
 	hold_step3.next_step_num = 3; //go back to beginning
 	hold_step3.last_step = false;
 	hold_step3.func_handler = FUNCTIONAL_RGB_LED_Hold;
 	hold_step3.complete = false;
 
-	//Ramp Step - increase color to white at a duration of 1 sec
+	//step 4: exp ramp 500 ms to black
 	rgb_led_step_t ramp_step4;
 	ramp_step4.step_type = RAMP_STEP;
 	ramp_step4.mode = RGB_LIN_MODE; //linear ramp output
 	ramp_step4.time = 0;
 	ramp_step4.current_step_num = 3;
 	ramp_step4.color_setpoint = BlackColor;
-	ramp_step4.duration = 1;
+	ramp_step4.duration = 0.5; //500 ms
 	ramp_step4.next_step_num = 4;
 	ramp_step4.last_step = false;
 	ramp_step4.func_handler = FUNCTIONAL_RGB_LED_Ramp;
 	ramp_step4.complete = false;
 
-	//hold
+	//step 5: hold 100 ms black
 	rgb_led_step_t hold_step5;
 	hold_step5.step_type = HOLD_STEP;
 	hold_step5.time = 0;
 	hold_step5.current_step_num = 4;
 	hold_step5.color_setpoint = BlackColor;
-	hold_step5.duration = 1;
+	hold_step5.duration = 0.1; //100 ms
 	hold_step5.next_step_num = 0; //go back to beginning
 	hold_step5.last_step = true;
 	hold_step5.func_handler = FUNCTIONAL_RGB_LED_Hold;
 	hold_step5.complete = false;
 
+
+	//fill in steps
 	sequence->steps[0] = setpoint_step1;
 	sequence->steps[1] = ramp_step2;
 	sequence->steps[2] = hold_step3;
 	sequence->steps[3] = ramp_step4;
 	sequence->steps[4] = hold_step5;
+	sequence->step_count = 5;
 	sequence->complete = false;
 	sequence->current_step_num = 0;
-	sequence->seq_type = ON;
-	sequence->restart = true; //loop over and over
-
-}
-void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
+	sequence->seq_type = OFF;
+	sequence->loop = false; //don't loop
 
 }
 void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
@@ -609,6 +700,9 @@ void FUNCTIONAL_RGB_LED_SequenceHandler(void){
 		  if(step->complete){
 			  sequence->current_step_num = step->next_step_num;
 			  step->complete = false;
+			  if(step->last_step && !sequence->loop){
+				  sequence->enabled = false; //stop sequence if the last step finished and the sequence is not set to repeat
+			  }
 		  }
 	  }
 	return;

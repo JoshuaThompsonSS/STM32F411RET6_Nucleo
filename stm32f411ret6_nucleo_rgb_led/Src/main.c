@@ -200,34 +200,6 @@ int main(void)
 
   while (1)
   {
-	  wait_sec(10);
-	  if(FUNCTIONAL_RGB_LED_isRunning()){
-		  FUNCTIONAL_RGB_LED_StopService();
-	  }
-	  else{
-		  FUNCTIONAL_RGB_LED_StartService();
-	  }
-	  /*
-	  int timerValue = __HAL_TIM_GET_COUNTER(&LEDTimHandle);
-	  if(timerValue > 3){
-		  toggleLED();
-	  }
-	  */
-	  //continuously dim and then brighten LED
-	  /*
-	  wait_sec(0.1); //update duty cycle until 100% then restart
-
-	  if(rgbHandle.sequence->enabled){
-		  int stepnum = rgbHandle.sequence->current_step_num;
-		  step = &rgbHandle.sequence->steps[stepnum];
-		  step->func_handler(step);
-		  if(step->complete){
-			  rgbHandle.sequence->current_step_num = step->next_step_num;
-			  step->complete = false;
-		  }
-	  }
-	  */
-
 
 
     }

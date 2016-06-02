@@ -56,7 +56,23 @@ rgb_color_t BlackColor = {0, 0, 0};
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType){
-
+	if(rgbHandle.sequence != NULL){
+		rgbHandle.sequence->enabled = false; //disable currently running seq
+		if(seqType <= RGB_SEQ_COUNT){
+			rgbHandle.next_sequence = sequenceList[seqType];
+		}
+		else{
+			FUNCTIONAL_RGB_LED_ErrorHandler();
+		}
+	}
+	else{
+		if(seqType <= RGB_SEQ_COUNT){
+					rgbHandle.sequence = sequenceList[seqType];
+				}
+		else{
+			FUNCTIONAL_RGB_LED_ErrorHandler();
+		}
+	}
 }
 
 /* ********************************************************************************
@@ -687,7 +703,16 @@ void FUNCTIONAL_RGB_LED_StopInterruptTimer(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SequenceHandler(void){
+	if(rgbHandle.next_sequence != NULL && rgbHandle.sequence != NULL && !rgbHandle.sequence->enabled){
+
+		if(rgbHandle.next_sequence->seq_type <= RGB_SEQ_COUNT){
+			rgbHandle.sequence = rgbHandle.next_sequence;
+			rgbHandle.next_sequence = NULL;
+			sequenceInitFuncList[rgbHandle.sequence->seq_type](rgbHandle.sequence);
+		}
+	}
 	rgb_led_sequence_t * sequence = rgbHandle.sequence;
+
 	if(sequence!= NULL && sequence->enabled){
 		rgb_led_step_t * step;
 		 //this just calls the current function pointed to by the step and passes in the step parameters to the function

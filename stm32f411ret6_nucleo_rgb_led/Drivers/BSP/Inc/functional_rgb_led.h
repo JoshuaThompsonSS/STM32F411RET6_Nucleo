@@ -136,6 +136,7 @@ typedef struct rgb_led_handle_t {
 	void (*stop)();
 	void (*reset)();
 	rgb_led_sequence_t * sequence;
+	rgb_led_sequence_t * next_sequence;
 }rgb_led_handle_t;
 
 //rgb led driver handle

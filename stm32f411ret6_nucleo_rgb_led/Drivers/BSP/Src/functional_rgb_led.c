@@ -188,50 +188,62 @@ void FUNCTIONAL_RGB_LED_InitHandle(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_InitSequences(void){
 	//rgb led sequences commonly used
-	int seqNum = 0;
+
 	FUNCTIONAL_RGB_LED_InitOnSeq(&onSequence);
-	sequenceList[seqNum] = &onSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitOnSeq;
+	sequenceList[ON_SEQ_TYPE] = &onSequence;
+	sequenceInitFuncList[ON_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitOnSeq;
 
 	FUNCTIONAL_RGB_LED_InitOffSeq(&offSequence);
-	sequenceList[seqNum] = &offSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitOffSeq;
+	sequenceList[OFF_SEQ_TYPE] = &offSequence;
+	sequenceInitFuncList[OFF_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitOffSeq;
 
 	FUNCTIONAL_RGB_LED_InitCriticalSeq(&criticalBattSequence);
-	sequenceList[seqNum] = &criticalBattSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitCriticalSeq;
+	sequenceList[CRTCL_SEQ_TYPE] = &criticalBattSequence;
+	sequenceInitFuncList[CRTCL_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitCriticalSeq;
+
+	FUNCTIONAL_RGB_LED_InitChargingSeq(&chargingSequence);
+	sequenceList[CHRNG_SEQ_TYPE] = &chargingSequence;
+	sequenceInitFuncList[CHRNG_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitChargingSeq;
+
+	FUNCTIONAL_RGB_LED_InitChargedSeq(&chargedSequence);
+	sequenceList[CHRGD_SEQ_TYPE] = &chargedSequence;
+	sequenceInitFuncList[CHRGD_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitChargedSeq;
+
+	FUNCTIONAL_RGB_LED_InitResetSeq(&resetSequence);
+	sequenceList[RST_SEQ_TYPE] = &resetSequence;
+	sequenceInitFuncList[RST_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitResetSeq;
 
 	FUNCTIONAL_RGB_LED_InitBTConnectedSeq(&btConnectedSequence);
-	sequenceList[seqNum] = &btConnectedSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTConnectedSeq;
+	sequenceList[BTCNTD_SEQ_TYPE] = &btConnectedSequence;
+	sequenceInitFuncList[BTCNTD_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitBTConnectedSeq;
 
 	FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(&btDiscoverableSequence);
-	sequenceList[seqNum] = &btDiscoverableSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq;
+	sequenceList[BTDISC_SEQ_TYPE] = &btDiscoverableSequence;
+	sequenceInitFuncList[BTDISC_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq;
 
 	FUNCTIONAL_RGB_LED_InitBTPairingSeq(&btPairingSequence);
-	sequenceList[seqNum] = &btPairingSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTPairingSeq;
+	sequenceList[BTPR_SEQ_TYPE] = &btPairingSequence;
+	sequenceInitFuncList[BTPR_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitBTPairingSeq;
 
 	FUNCTIONAL_RGB_LED_InitBTConnectingSeq(&btConnectingSequence);
-	sequenceList[seqNum] = &btConnectingSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitBTConnectingSeq;
+	sequenceList[BTCNTG_SEQ_TYPE] = &btConnectingSequence;
+	sequenceInitFuncList[BTCNTG_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitBTConnectingSeq;
 
 	FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(&auxInShoeSequence);
-	sequenceList[seqNum] = &auxInShoeSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitAUXInShoeSeq;
+	sequenceList[AXSH_SEQ_TYPE] = &auxInShoeSequence;
+	sequenceInitFuncList[AXSH_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitAUXInShoeSeq;
 
 	FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(&auxInShoe1Sequence);
-	sequenceList[seqNum] = &auxInShoe1Sequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq;
+	sequenceList[AXSH1_SEQ_TYPE] = &auxInShoe1Sequence;
+	sequenceInitFuncList[AXSH1_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq;
 
 	FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(&fwUpgradeSequence);
-	sequenceList[seqNum] = &fwUpgradeSequence;
-	sequenceInitFuncList[seqNum++] = FUNCTIONAL_RGB_LED_InitFWUpgradeSeq;
+	sequenceList[FWUP_SEQ_TYPE] = &fwUpgradeSequence;
+	sequenceInitFuncList[FWUP_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitFWUpgradeSeq;
 
 	FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(&fwUpgradeCompleteSequence);
-	sequenceList[seqNum] = &fwUpgradeCompleteSequence;
-	sequenceInitFuncList[seqNum] = FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq;
+	sequenceList[FWUPCPLT_SEQ_TYPE] = &fwUpgradeCompleteSequence;
+	sequenceInitFuncList[FWUPCPLT_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq;
 }
 
 /* ********************************************************************************
@@ -367,6 +379,24 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 	sequence->seq_type = RGBSEQ_CRITICAL;
 	sequence->loop = true; //loop
 	sequence->valid = true;
+
+}
+void FUNCTIONAL_RGB_LED_InitChargingSeq(rgb_led_sequence_t * sequence){
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
+
+}
+void FUNCTIONAL_RGB_LED_InitChargedSeq(rgb_led_sequence_t * sequence){
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
+
+}
+void FUNCTIONAL_RGB_LED_InitResetSeq(rgb_led_sequence_t * sequence){
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 
 }
 void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(rgb_led_sequence_t * sequence){

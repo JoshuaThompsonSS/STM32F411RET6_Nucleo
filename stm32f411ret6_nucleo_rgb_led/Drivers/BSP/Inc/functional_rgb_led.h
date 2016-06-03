@@ -206,6 +206,9 @@ void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step, bool last, int crn
 void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitChargingSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitChargedSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitResetSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitBTPairingSeq(rgb_led_sequence_t * sequence);

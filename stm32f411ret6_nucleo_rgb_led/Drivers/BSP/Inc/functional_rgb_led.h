@@ -51,14 +51,14 @@
 #define CHRNG_SEQ_TYPE			3 //chargning state
 #define CHRGD_SEQ_TYPE			4 //charged state
 #define RST_SEQ_TYPE			5 //any reset state
-#define BTCNTD_SEQ_TYPE			5 //bluetooth connected state
-#define BTDISC_SEQ_TYPE			6 //bluetooth discoverable state
-#define BTPR_SEQ_TYPE			7 //bluetooth pairing state
-#define BTCNTG_SEQ_TYPE			8 //bluetooth connecting state
-#define AXSH_SEQ_TYPE			9 //aux in shoe (1)
-#define AXSH1_SEQ_TYPE			9 //aux in shoe1 not shoe2
-#define FWUP_SEQ_TYPE			10 //firmware upgrade
-#define FWUPCPLT_SEQ_TYPE		11 //firmware upgrade complete
+#define BTCNTD_SEQ_TYPE			6 //bluetooth connected state
+#define BTDISC_SEQ_TYPE			7 //bluetooth discoverable state
+#define BTPR_SEQ_TYPE			8 //bluetooth pairing state
+#define BTCNTG_SEQ_TYPE			9 //bluetooth connecting state
+#define AXSH_SEQ_TYPE			10 //aux in shoe (1)
+#define AXSH1_SEQ_TYPE			11 //aux in shoe1 not shoe2
+#define FWUP_SEQ_TYPE			12 //firmware upgrade
+#define FWUPCPLT_SEQ_TYPE		13 //firmware upgrade complete
 
 
 
@@ -70,10 +70,10 @@
 typedef enum rgb_modes_t {RGB_NO_MODE, RGB_LIN_MODE, RGB_LOG_MODE, RGB_EXP_MODE} rgb_modes_t;
 typedef enum rgb_step_type_t {RAMP_STEP=RAMP_STEP_TYPE, HOLD_STEP=HOLD_STEP_TYPE, SETPOINT_STEP=SETPOINT_STEP_TYPE, REPEAT_STEP=REPEAT_STEP_TYPE} rgb_step_type_t;
 typedef enum rgb_state_colors_t {BLACK=BLACK_CLR, WHITE=WHITE_CLR, RED=RED_CLR, BLUE=BLUE_CLR, GREEN=GREEN_CLR} rgb_state_colors_t;
-typedef enum rgb_seq_type_t {ON=ON_SEQ_TYPE, OFF=OFF_SEQ_TYPE, CRITICAL=ON_SEQ_TYPE, CHARGING=CHRNG_SEQ_TYPE, CHARGED=CHRGD_SEQ_TYPE,
-								RESET_SHOE=RST_SEQ_TYPE, BT_CONNECTED=BTCNTD_SEQ_TYPE, BT_DISCOVERABLE=BTDISC_SEQ_TYPE, BT_PAIRING=BTPR_SEQ_TYPE,
-								BT_CONNECTING=BTCNTG_SEQ_TYPE, AUX_IN_SHOE=AXSH_SEQ_TYPE, AUX_IN_SHOE1=AXSH1_SEQ_TYPE, FW_UPGRADE=FWUP_SEQ_TYPE,
-								FW_UPGRADE_COMPLETE=FWUPCPLT_SEQ_TYPE
+typedef enum rgb_seq_type_t {RGBSEQ_ON=ON_SEQ_TYPE, RGBSEQ_OFF=OFF_SEQ_TYPE, RGBSEQ_CRITICAL=CRTCL_SEQ_TYPE, RGBSEQ_CHARGING=CHRNG_SEQ_TYPE, RGBSEQ_CHARGED=CHRGD_SEQ_TYPE,
+	RGBSEQ_RESET_SHOE=RST_SEQ_TYPE, RGBSEQ_BT_CONNECTED=BTCNTD_SEQ_TYPE, RGBSEQ_BT_DISCOVERABLE=BTDISC_SEQ_TYPE, RGBSEQ_BT_PAIRING=BTPR_SEQ_TYPE,
+	RGBSEQ_BT_CONNECTING=BTCNTG_SEQ_TYPE, RGBSEQ_AUX_IN_SHOE=AXSH_SEQ_TYPE, RGBSEQ_AUX_IN_SHOE1=AXSH1_SEQ_TYPE, RGBSEQ_FW_UPGRADE=FWUP_SEQ_TYPE,
+	RGBSEQ_FW_UPGRADE_COMPLETE=FWUPCPLT_SEQ_TYPE
 }rgb_seq_type_t;
 
 //functional rgb status
@@ -118,6 +118,7 @@ typedef struct rgb_led_step_t {
 typedef struct rgb_led_sequence_t {
 	int current_step_num;
 	int step_count;
+	bool valid; //use this if seq not developed yet
 	bool enabled;
 	bool complete;
 	bool loop;
@@ -180,7 +181,7 @@ TIM_HandleTypeDef RGBInterruptTimHandle;
 /*
  * --------Function Declarations
 */
-void FUNCTIONAL_RGB_LED_LoadSequnece(rgb_seq_type_t seqType);
+void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType);
 bool FUNCTIONAL_RGB_LED_isRunning(void);
 void FUNCTIONAL_RGB_LED_ErrorHandler(void);
 void FUNCTIONAL_RGB_LED_StartService(void);

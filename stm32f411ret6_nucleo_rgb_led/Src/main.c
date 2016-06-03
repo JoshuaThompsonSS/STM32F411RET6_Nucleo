@@ -33,7 +33,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
+#include "stm32f4xx_hal_uart.h"
 #include "functional_rgb_led.h"
+#include "stdlib.h"
+#include "string.h"
 
 
 
@@ -45,6 +48,9 @@
 TIM_HandleTypeDef TimHandle;
 TIM_OC_InitTypeDef PwmConfig;
 TIM_HandleTypeDef LEDTimHandle;
+
+UART_InitTypeDef UART_InitStructure;
+UART_HandleTypeDef UART_Handle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -59,6 +65,25 @@ void SystemClock_Config(void);
 
 
 /* Function prototypes -----------------------------------------------*/
+
+void Init_USART(void){
+//http://www.carminenoviello.com/2015/03/02/how-to-use-stm32-nucleo-serial-port/
+// Initialize USART - TODO: make sure no hardware flow control
+
+UART_InitStructure.BaudRate = 9600;
+UART_InitStructure.WordLength = UART_WORDLENGTH_8B;
+UART_InitStructure.StopBits = UART_STOPBITS_1;
+UART_InitStructure.Parity = UART_PARITY_NONE;
+UART_InitStructure.Mode = UART_MODE_TX_RX;
+UART_InitStructure.HwFlowCtl = UART_HWCONTROL_NONE;
+/* Configure USART */
+UART_Handle.Instance = USART2;
+UART_Handle.Init = UART_InitStructure;
+/* Init and Enable the USART */
+HAL_UART_Init(&UART_Handle);
+
+//__HAL_USART_ENABLE(&USART_Handle);
+}
 
 //Initialize timer used to generate interrupt
 void initTimInterrupt(void){
@@ -196,15 +221,56 @@ int main(void)
 
 
   FUNCTIONAL_RGB_LED_StartService();
-
-
+  //rgb_seq_type_t rgbLedOn = RGBSEQ_ON;
+  rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
+  Init_USART();
+  char *msg = "Hello Nucleo Fun!\n\r";
+  char *rxMsg = (char*)malloc(sizeof(char)*100);
+  int seqNum = 0;
   while (1)
   {
+	  //see if rgb led seq request in serial port buffer
+	  //FUNCTIONAL_RGB_LED_LoadSequence(rgbLedOn);
+
+	  //HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
+	  //wait_sec(2);
+	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, strlen(rxMsg), 0xFFFF);
+	  if(rxMsg[0]=='!'){
+		    seqNum = rxMsg[1]-'0';
+		    seqNum = seqNum*10 + (rxMsg[2]-'0'); //convert char number to actual number
+		    									//ex: '04' = 0*10 + 4 = 4
+		    									//ex: '14' = 1*10 + 4 = 14
+		    if(seqNum < RGB_SEQ_COUNT){
+		    	FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t)seqNum);
+		    	HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
+		    }
+	  }
+
 
 
     }
 
 }
+
+//override printf primitive
+/**
+* @brief Function that printf uses to push characters to serial port
+* @param ch: ascii character
+* @retval character
+*/
+/*
+int putcharx(int ch)
+{
+uint8_t data_ch = ch;
+uint8_t * dataPtr = &data_ch;
+uint16_t Size = 1;
+uint32_t Timeout = 1000; //millisec?
+while (HAL_USART_GetState(&USART_Handle) == HAL_USART_STATE_RESET);
+HAL_USART_Transmit(&USART_Handle, dataPtr,Size, Timeout);
+return ch;
+}
+*/
+
 
 /** System Clock Configuration
 */
@@ -249,6 +315,28 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	}
 }
 
+void HAL_UART_MspInit(UART_HandleTypeDef *husart){
+	// sort out clocks
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_USART2_CLK_ENABLE();
+
+	/* Configure USART2 Tx (PA.02) and RX (PA.03) as alternate function push-pull */
+	GPIO_InitTypeDef  GPIO_TX_InitStructure;
+	GPIO_TX_InitStructure.Pin = GPIO_PIN_2;
+	GPIO_TX_InitStructure.Speed = GPIO_SPEED_LOW;
+	GPIO_TX_InitStructure.Mode = GPIO_MODE_AF_PP;
+	GPIO_TX_InitStructure.Pull = GPIO_PULLUP;
+	GPIO_TX_InitStructure.Alternate = GPIO_AF7_USART2;
+	HAL_GPIO_Init(GPIOA, &GPIO_TX_InitStructure);// Map USART2 TX to A.02
+
+	GPIO_InitTypeDef  GPIO_RX_InitStructure;
+	GPIO_RX_InitStructure.Pin = GPIO_PIN_3;
+	GPIO_RX_InitStructure.Speed = GPIO_SPEED_LOW;
+	GPIO_RX_InitStructure.Mode = GPIO_MODE_AF_PP;
+	GPIO_RX_InitStructure.Pull = GPIO_PULLUP;
+	GPIO_RX_InitStructure.Alternate = GPIO_AF7_USART2;
+	HAL_GPIO_Init(GPIOA, &GPIO_RX_InitStructure);// Map USART2 RX to A.02
+}
 
 /* USER CODE END 4 */
 

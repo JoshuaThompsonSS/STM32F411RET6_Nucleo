@@ -58,16 +58,19 @@ rgb_color_t BlackColor = {0, 0, 0};
 void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType){
 	if(rgbHandle.sequence != NULL){
 		rgbHandle.sequence->enabled = false; //disable currently running seq
-		if(seqType <= RGB_SEQ_COUNT){
+		if(seqType < RGB_SEQ_COUNT && sequenceList[seqType]->valid){
 			rgbHandle.next_sequence = sequenceList[seqType];
+			rgbHandle.next_sequence->enabled = true;
 		}
 		else{
 			FUNCTIONAL_RGB_LED_ErrorHandler();
 		}
 	}
 	else{
-		if(seqType <= RGB_SEQ_COUNT){
+		if(seqType < RGB_SEQ_COUNT && sequenceList[seqType]->valid){
 					rgbHandle.sequence = sequenceList[seqType];
+					rgbHandle.sequence->enabled = true;
+					sequenceInitFuncList[rgbHandle.sequence->seq_type](rgbHandle.sequence);
 				}
 		else{
 			FUNCTIONAL_RGB_LED_ErrorHandler();
@@ -117,9 +120,6 @@ void FUNCTIONAL_RGB_LED_StartService(void){
 	//start driver
 	rgbHandle.start();
 
-	rgbHandle.sequence = &onSequence;
-
-	rgbHandle.sequence->enabled = true;
 	//init timer interrupt
 	FUNCTIONAL_RGB_LED_InitInterruptTimer();
 	//start timer interrupt
@@ -363,8 +363,9 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 	sequence->step_count = 3;
 	sequence->complete = false;
 	sequence->current_step_num = 0;
-	sequence->seq_type = ON;
+	sequence->seq_type = RGBSEQ_ON;
 	sequence->loop = false; //don't loop
+	sequence->valid = true;
 
 }
 void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
@@ -438,36 +439,57 @@ void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
 	sequence->step_count = 5;
 	sequence->complete = false;
 	sequence->current_step_num = 0;
-	sequence->seq_type = OFF;
+	sequence->seq_type = RGBSEQ_OFF;
 	sequence->loop = false; //don't loop
+	sequence->valid = true;
 
 }
 void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 
 }
 void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(rgb_led_sequence_t * sequence){
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 
 }
 void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(rgb_led_sequence_t * sequence){
-
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 }
 void FUNCTIONAL_RGB_LED_InitBTPairingSeq(rgb_led_sequence_t * sequence){
-
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 }
 void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(rgb_led_sequence_t * sequence){
-
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 }
 void FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(rgb_led_sequence_t * sequence){
-
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 }
 void FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(rgb_led_sequence_t * sequence){
-
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 }
 void FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(rgb_led_sequence_t * sequence){
-
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 }
 void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(rgb_led_sequence_t * sequence){
-
+	sequence->loop = false;
+	sequence->enabled = false;
+	sequence->valid = false;
 }
 
 
@@ -497,6 +519,7 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
 	int color_diff = dlta_clr.red + dlta_clr.green + dlta_clr.blue;
 	if(color_diff < 0){color_diff = color_diff * (-1);} //abs value
+
 
 	if((color_diff <= MIN_COLOR_DIFF) && (step->time >= step->duration)){
 		step->complete = true;
@@ -705,7 +728,7 @@ void FUNCTIONAL_RGB_LED_StopInterruptTimer(void){
 void FUNCTIONAL_RGB_LED_SequenceHandler(void){
 	if(rgbHandle.next_sequence != NULL && rgbHandle.sequence != NULL && !rgbHandle.sequence->enabled){
 
-		if(rgbHandle.next_sequence->seq_type <= RGB_SEQ_COUNT){
+		if(rgbHandle.next_sequence->seq_type < RGB_SEQ_COUNT){
 			rgbHandle.sequence = rgbHandle.next_sequence;
 			rgbHandle.next_sequence = NULL;
 			sequenceInitFuncList[rgbHandle.sequence->seq_type](rgbHandle.sequence);
@@ -713,7 +736,7 @@ void FUNCTIONAL_RGB_LED_SequenceHandler(void){
 	}
 	rgb_led_sequence_t * sequence = rgbHandle.sequence;
 
-	if(sequence!= NULL && sequence->enabled){
+	if(sequence!= NULL && sequence->enabled && sequence->valid){
 		rgb_led_step_t * step;
 		 //this just calls the current function pointed to by the step and passes in the step parameters to the function
 		 //for ex, the function might be a hold function that just keeps the color at a certain setpoint until the duration is complete

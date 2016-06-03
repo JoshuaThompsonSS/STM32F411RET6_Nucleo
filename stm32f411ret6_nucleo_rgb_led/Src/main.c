@@ -222,29 +222,29 @@ int main(void)
 
   FUNCTIONAL_RGB_LED_StartService();
   //rgb_seq_type_t rgbLedOn = RGBSEQ_ON;
-  rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
+  //rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
   Init_USART();
   char *msg = "Hello Nucleo Fun!\n\r";
   char *rxMsg = (char*)malloc(sizeof(char)*100);
   int seqNum = 0;
+  FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CRITICAL);
   while (1)
   {
-	  //see if rgb led seq request in serial port buffer
-	  //FUNCTIONAL_RGB_LED_LoadSequence(rgbLedOn);
 
-	  //HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
-	  //wait_sec(2);
-	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, strlen(rxMsg), 0xFFFF);
+
+
+	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 4, 0xFFFF);
 	  if(rxMsg[0]=='!'){
 		    seqNum = rxMsg[1]-'0';
 		    seqNum = seqNum*10 + (rxMsg[2]-'0'); //convert char number to actual number
 		    									//ex: '04' = 0*10 + 4 = 4
 		    									//ex: '14' = 1*10 + 4 = 14
 		    if(seqNum < RGB_SEQ_COUNT){
-		    	FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t)seqNum);
+		    	FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t) seqNum);
 		    	HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
 		    }
 	  }
+
 
 
 

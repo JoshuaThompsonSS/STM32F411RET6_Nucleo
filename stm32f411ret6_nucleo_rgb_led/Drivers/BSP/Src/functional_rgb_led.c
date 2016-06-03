@@ -285,81 +285,19 @@ void FUNCTIONAL_RGB_LED_GetColorDiff(rgb_color_t * color1, rgb_color_t * color2,
 	return;
 }
 
-//Generate step
-void FUNCTIONAL_RGB_LED_InitRampStep(rgb_led_step_t * step){
-	step->last_step = false;
-	step->step_type = RAMP_STEP;
-	step->complete = false;
-	step->mode = RGB_LIN_MODE;
-	step->func_handler = FUNCTIONAL_RGB_LED_Ramp;
-	return;
-}
-void FUNCTIONAL_RGB_LED_InitHoldStep(rgb_led_step_t * step){
-	step->last_step = false;
-	step->step_type = HOLD_STEP;
-	step->complete = false;
-	step->mode = RGB_LIN_MODE;
-	step->func_handler = FUNCTIONAL_RGB_LED_Hold;
-	return;
-}
-void FUNCTIONAL_RGB_LED_InitSetpointStep(rgb_led_step_t * step){
-	step->last_step = false;
-	step->step_type = SETPOINT_STEP;
-	step->complete = false;
-	step->mode = RGB_NO_MODE;
-	step->func_handler = FUNCTIONAL_RGB_LED_Setpoint;
-	return;
-}
-void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step){
-	step->last_step = false;
-	step->step_type = REPEAT_STEP;
-	step->complete = false;
-	step->mode = RGB_NO_MODE;
-	step->func_handler = FUNCTIONAL_RGB_LED_Repeat;
-	return;
-}
 
 //Init Sequences
 void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
-	//Setpoint Step - set solid color black (off)
-	rgb_led_step_t setpoint_step1;
-	setpoint_step1.current_step_num = 0;
-	setpoint_step1.color_setpoint = BlackColor;
-	setpoint_step1.step_type = SETPOINT_STEP;
-	setpoint_step1.next_step_num = 1;
-	setpoint_step1.last_step = false;
-	setpoint_step1.func_handler = FUNCTIONAL_RGB_LED_Setpoint;
-	setpoint_step1.complete = false;
+	//step 1: Setpoint Step - set solid color black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
 
-	//Ramp Step - increase color to white at a duration of 1 sec
-	rgb_led_step_t ramp_step2;
-	ramp_step2.time = 0;
-	ramp_step2.step_type = RAMP_STEP;
-	ramp_step2.mode = RGB_LIN_MODE; //linear ramp output
-	ramp_step2.current_step_num = 1;
-	ramp_step2.color_setpoint = WhiteColor;
-	ramp_step2.duration = 1;
-	ramp_step2.next_step_num = 2;
-	ramp_step2.last_step = false;
-	ramp_step2.func_handler = FUNCTIONAL_RGB_LED_Ramp;
-	ramp_step2.complete = false;
+	//step 2: Ramp Step - increase color to white at a duration of 1 sec
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 1.00, RGB_LIN_MODE);
 
-	//Hold Step - set color to white and hold for duration of 1 sec
+	//step 3: Hold Step - set color to white and hold for duration of 1 sec
 	//			- make this step the last step (so sequence repeats)
-	rgb_led_step_t hold_step3;
-	hold_step3.step_type = HOLD_STEP;
-	hold_step3.time = 0;
-	hold_step3.current_step_num = 2;
-	hold_step3.color_setpoint = WhiteColor;
-	hold_step3.duration = 2; //TODO: change to 1 sec later
-	hold_step3.next_step_num = 0; //go back to beginning
-	hold_step3.last_step = true;
-	hold_step3.func_handler = FUNCTIONAL_RGB_LED_Hold;
-	hold_step3.complete = false;
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], true, 2, 0, WhiteColor, 2.00);
 
-	sequence->steps[0] = setpoint_step1;
-	sequence->steps[1] = ramp_step2;
-	sequence->steps[2] = hold_step3;
 	sequence->step_count = 3;
 	sequence->complete = false;
 	sequence->current_step_num = 0;
@@ -370,72 +308,26 @@ void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence){
 }
 void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
 	//step 1: setpoint solid black (off)
-	rgb_led_step_t setpoint_step1;
-	setpoint_step1.current_step_num = 0;
-	setpoint_step1.color_setpoint = BlackColor;
-	setpoint_step1.step_type = SETPOINT_STEP;
-	setpoint_step1.next_step_num = 1;
-	setpoint_step1.last_step = false;
-	setpoint_step1.func_handler = FUNCTIONAL_RGB_LED_Setpoint;
-	setpoint_step1.complete = false;
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
 
-	//step 2: exp ramp 500 ms to red
-	rgb_led_step_t ramp_step2;
-	ramp_step2.time = 0;
-	ramp_step2.step_type = RAMP_STEP;
-	ramp_step2.mode = RGB_LIN_MODE; //linear ramp output - TODO: but change to exp later
-	ramp_step2.current_step_num = 1;
-	ramp_step2.color_setpoint = WhiteColor; //TODO: change color to RedColor later
-	ramp_step2.duration = 0.5; //500 ms
-	ramp_step2.next_step_num = 2;
-	ramp_step2.last_step = false;
-	ramp_step2.func_handler = FUNCTIONAL_RGB_LED_Ramp;
-	ramp_step2.complete = false;
+
+	//step 2: exp ramp 500 ms to red (linear ramp for now, and use white color for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.500, RGB_LIN_MODE);
+
 
 	//step 3: hold 2 sec red
-	rgb_led_step_t hold_step3;
-	hold_step3.step_type = HOLD_STEP;
-	hold_step3.time = 0;
-	hold_step3.current_step_num = 2;
-	hold_step3.color_setpoint = WhiteColor; //TODO: change to RedColor later
-	hold_step3.duration = 2;
-	hold_step3.next_step_num = 3; //go back to beginning
-	hold_step3.last_step = false;
-	hold_step3.func_handler = FUNCTIONAL_RGB_LED_Hold;
-	hold_step3.complete = false;
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 2.00);
 
-	//step 4: exp ramp 500 ms to black
-	rgb_led_step_t ramp_step4;
-	ramp_step4.step_type = RAMP_STEP;
-	ramp_step4.mode = RGB_LIN_MODE; //linear ramp output
-	ramp_step4.time = 0;
-	ramp_step4.current_step_num = 3;
-	ramp_step4.color_setpoint = BlackColor;
-	ramp_step4.duration = 0.5; //500 ms
-	ramp_step4.next_step_num = 4;
-	ramp_step4.last_step = false;
-	ramp_step4.func_handler = FUNCTIONAL_RGB_LED_Ramp;
-	ramp_step4.complete = false;
 
-	//step 5: hold 100 ms black
-	rgb_led_step_t hold_step5;
-	hold_step5.step_type = HOLD_STEP;
-	hold_step5.time = 0;
-	hold_step5.current_step_num = 4;
-	hold_step5.color_setpoint = BlackColor;
-	hold_step5.duration = 0.1; //100 ms
-	hold_step5.next_step_num = 0; //go back to beginning
-	hold_step5.last_step = true;
-	hold_step5.func_handler = FUNCTIONAL_RGB_LED_Hold;
-	hold_step5.complete = false;
+	//step 4: exp ramp 500 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.50, RGB_LIN_MODE);
+
+
+	//step 5: hold 100 ms black then stop (last step = true)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], true, 4, 0, BlackColor, 0.100);
 
 
 	//fill in steps
-	sequence->steps[0] = setpoint_step1;
-	sequence->steps[1] = ramp_step2;
-	sequence->steps[2] = hold_step3;
-	sequence->steps[3] = ramp_step4;
-	sequence->steps[4] = hold_step5;
 	sequence->step_count = 5;
 	sequence->complete = false;
 	sequence->current_step_num = 0;
@@ -445,9 +337,36 @@ void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
 
 }
 void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to red (linear ramp for now, and use white color for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 3: hold 2 sec red
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500);
+
+	//step 6: repeat steps 2 - 5 (1 - 4 using 0 index) - last step = true
+	FUNCTIONAL_RGB_LED_InitRepeatStep(&sequence->steps[5], true, 5, 1, 1);
+
+
+	//fill in steps
+	sequence->step_count = 6;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_CRITICAL;
+	sequence->loop = true; //loop
+	sequence->valid = true;
 
 }
 void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(rgb_led_sequence_t * sequence){
@@ -493,6 +412,86 @@ void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(rgb_led_sequence_t * sequence){
 }
 
 
+//Init / Create Step
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitRampStep()
+** DESCRIPTION:
+** 				- Initializes step structure to run a ramp rgb led step
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_InitRampStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, rgb_color_t color, float duration, rgb_modes_t mode){
+	step->current_step_num = crnt_num;
+	step->next_step_num = nxt_num;
+	step->mode = mode; //linear, exp, log...etc
+	step->color_setpoint = color;
+	step->step_type = RAMP_STEP;
+	step->time = 0;
+	step->duration = duration;
+	step->last_step = last;
+	step->func_handler = FUNCTIONAL_RGB_LED_Ramp; //function that will update the actual rgb led pwm signals based on mode
+	step->complete = false;
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitHoldStep()
+** DESCRIPTION:
+** 				- - Initializes step structure to run a hold rgb led step
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_InitHoldStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, rgb_color_t color, float duration){
+	step->current_step_num = crnt_num;
+	step->next_step_num = nxt_num;
+	step->mode = RGB_NO_MODE;
+	step->color_setpoint = color;
+	step->step_type = HOLD_STEP;
+	step->time = 0;
+	step->duration = duration;
+	step->last_step = last;
+	step->func_handler = FUNCTIONAL_RGB_LED_Hold; //function that will update the actual rgb led pwm signals based on mode
+	step->complete = false;
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitSetpointStep()
+** DESCRIPTION:
+** 				- Initializes step structure to run a setpoint rgb led step
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_InitSetpointStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, rgb_color_t color){
+	step->current_step_num = crnt_num;
+	step->next_step_num = nxt_num;
+	step->mode = RGB_NO_MODE;
+	step->color_setpoint = color;
+	step->step_type = SETPOINT_STEP;
+	step->last_step = last;
+	step->func_handler = FUNCTIONAL_RGB_LED_Setpoint; //function that will update the actual rgb led pwm signals based on mode
+	step->complete = false;
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitRepeatStep()
+** DESCRIPTION:
+** 				- Initializes step structure to run a setpoint rgb led step
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, float duration){
+	step->current_step_num = crnt_num;
+	step->next_step_num = nxt_num;
+	step->mode = RGB_NO_MODE;
+	step->step_type = REPEAT_STEP;
+	step->duration = duration;
+	step->last_step = last;
+	step->func_handler = FUNCTIONAL_RGB_LED_Repeat; //function that will update the actual rgb led pwm signals based on mode
+	step->complete = false;
+
+}
 
 //Step functions to create specific RGB LED sequences
 
@@ -575,16 +574,19 @@ void FUNCTIONAL_RGB_LED_Setpoint(rgb_led_step_t * step){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Repeat(rgb_led_step_t * step){
+	//this step just keeps a count of how many times the sequences is told to go back to the beginning,
+	//or whatever step is pointed to by the repeat step next_step_num
 	if(step->time >= step->duration){
-		step->complete = true;
+		step->complete = true; //repeat loops are finished
+		step->time = 0; //clear for next use
 		return;
 	}
-	//check to see if step has a parent sequence
-	if(step->parent_seq == NULL){
-		return;
+	else{
+		//increment counter / timer everytime sequence gets to this step
+		step->time++;
+		//sequence will look for the repeat steps next_step_num and will then go there until it gets here again
 	}
-	//move parent sequence step index to starting step in repeat loop
-	step->parent_seq->current_step_num = step->next_step_num;
+
 	return;
 }
 
@@ -746,10 +748,14 @@ void FUNCTIONAL_RGB_LED_SequenceHandler(void){
 		  step = &(sequence->steps[stepnum]);
 		  step->func_handler(step);
 		  if(step->complete){
-			  sequence->current_step_num = step->next_step_num;
+			  sequence->current_step_num = (step->step_type == REPEAT_STEP) ? (step->current_step_num + 1): step->next_step_num;
 			  step->complete = false;
 			  if(step->last_step && !sequence->loop){
 				  sequence->enabled = false; //stop sequence if the last step finished and the sequence is not set to repeat
+				  sequence->current_step_num = 0; //reset to first step
+			  }
+			  else if(step->last_step && sequence->loop){
+				  sequence->current_step_num = 0; //reset to first step
 			  }
 		  }
 	  }

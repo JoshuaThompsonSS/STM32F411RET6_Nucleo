@@ -197,10 +197,11 @@ void FUNCTIONAL_RGB_LED_SetColor(rgb_color_t * color);
 void FUNCTIONAL_RGB_LED_GetColor(rgb_color_t * color);
 void FUNCTIONAL_RGB_LED_GetColorDiff(rgb_color_t * color1, rgb_color_t * color2, rgb_color_t * colorDelta);
 //Steps
-void FUNCTIONAL_RGB_LED_InitRampStep(rgb_led_step_t * step);
-void FUNCTIONAL_RGB_LED_InitHoldStep(rgb_led_step_t * step);
-void FUNCTIONAL_RGB_LED_InitSetpointStep(rgb_led_step_t * step);
-void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step);
+void FUNCTIONAL_RGB_LED_InitRampStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, rgb_color_t color, float duration, rgb_modes_t mode);
+void FUNCTIONAL_RGB_LED_InitHoldStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, rgb_color_t color, float duration);
+void FUNCTIONAL_RGB_LED_InitSetpointStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, rgb_color_t color);
+void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step, bool last, int crnt_num, int nxt_num, float duration);
+
 //Sequences
 void FUNCTIONAL_RGB_LED_InitOnSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence);

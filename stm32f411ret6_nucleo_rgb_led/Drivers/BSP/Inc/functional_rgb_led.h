@@ -11,8 +11,7 @@
 /*
  * ------Constants / Definitions
 */
-//RGB Seq Count
-#define RGB_SEQ_COUNT			14
+
 //RGB Colors
 #define RGB_SOLID_RED			255
 #define RGB_SOLID_GREEN			255
@@ -55,10 +54,14 @@
 #define BTDISC_SEQ_TYPE			7 //bluetooth discoverable state
 #define BTPR_SEQ_TYPE			8 //bluetooth pairing state
 #define BTCNTG_SEQ_TYPE			9 //bluetooth connecting state
-#define AXSH_SEQ_TYPE			10 //aux in shoe (1)
-#define AXSH1_SEQ_TYPE			11 //aux in shoe1 not shoe2
-#define FWUP_SEQ_TYPE			12 //firmware upgrade
-#define FWUPCPLT_SEQ_TYPE		13 //firmware upgrade complete
+#define AXSH_SEQ_TYPE			10 //aux in shoes
+#define AXSH1N2_SEQ_TYPE		11 //aux in shoe1 not shoe2
+#define FWUPSH1_SEQ_TYPE		12 //firmware upgrade shoe1
+#define FWUPSH2_SEQ_TYPE		13 //firmware upgrade shoe1
+#define FWUPCPLT_SEQ_TYPE		14 //firmware upgrade complete
+
+//RGB Seq Count
+#define RGB_SEQ_COUNT			15
 
 
 
@@ -72,8 +75,8 @@ typedef enum rgb_step_type_t {RAMP_STEP=RAMP_STEP_TYPE, HOLD_STEP=HOLD_STEP_TYPE
 typedef enum rgb_state_colors_t {BLACK=BLACK_CLR, WHITE=WHITE_CLR, RED=RED_CLR, BLUE=BLUE_CLR, GREEN=GREEN_CLR} rgb_state_colors_t;
 typedef enum rgb_seq_type_t {RGBSEQ_ON=ON_SEQ_TYPE, RGBSEQ_OFF=OFF_SEQ_TYPE, RGBSEQ_CRITICAL=CRTCL_SEQ_TYPE, RGBSEQ_CHARGING=CHRNG_SEQ_TYPE, RGBSEQ_CHARGED=CHRGD_SEQ_TYPE,
 	RGBSEQ_RESET_SHOE=RST_SEQ_TYPE, RGBSEQ_BT_CONNECTED=BTCNTD_SEQ_TYPE, RGBSEQ_BT_DISCOVERABLE=BTDISC_SEQ_TYPE, RGBSEQ_BT_PAIRING=BTPR_SEQ_TYPE,
-	RGBSEQ_BT_CONNECTING=BTCNTG_SEQ_TYPE, RGBSEQ_AUX_IN_SHOE=AXSH_SEQ_TYPE, RGBSEQ_AUX_IN_SHOE1=AXSH1_SEQ_TYPE, RGBSEQ_FW_UPGRADE=FWUP_SEQ_TYPE,
-	RGBSEQ_FW_UPGRADE_COMPLETE=FWUPCPLT_SEQ_TYPE
+	RGBSEQ_BT_CONNECTING=BTCNTG_SEQ_TYPE, RGBSEQ_AUX_IN_SHOE=AXSH_SEQ_TYPE, RGBSEQ_AUX_IN_SHOE1NO2=AXSH1N2_SEQ_TYPE, RGBSEQ_FW_UPGRADE_SHOE1=FWUPSH1_SEQ_TYPE,
+	RGBSEQ_FW_UPGRADE_SHOE2=FWUPSH2_SEQ_TYPE, RGBSEQ_FW_UPGRADE_COMPLETE=FWUPCPLT_SEQ_TYPE
 }rgb_seq_type_t;
 
 //functional rgb status
@@ -162,8 +165,9 @@ rgb_led_sequence_t btDiscoverableSequence;
 rgb_led_sequence_t btPairingSequence;
 rgb_led_sequence_t btConnectingSequence;
 rgb_led_sequence_t auxInShoeSequence;
-rgb_led_sequence_t auxInShoe1Sequence;
-rgb_led_sequence_t fwUpgradeSequence;
+rgb_led_sequence_t auxInShoe1No2Sequence;
+rgb_led_sequence_t fwUpgradeShoe1Sequence;
+rgb_led_sequence_t fwUpgradeShoe2Sequence;
 rgb_led_sequence_t fwUpgradeCompleteSequence;
 
 //array of sequence pointers
@@ -214,8 +218,9 @@ void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitBTPairingSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(rgb_led_sequence_t * sequence);
-void FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(rgb_led_sequence_t * sequence);
-void FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitAUXInShoe1No2Seq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitFWUpgradeShoe1Seq(rgb_led_sequence_t * sequence);
+void FUNCTIONAL_RGB_LED_InitFWUpgradeShoe2Seq(rgb_led_sequence_t * sequence);
 void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(rgb_led_sequence_t * sequence);
 
 

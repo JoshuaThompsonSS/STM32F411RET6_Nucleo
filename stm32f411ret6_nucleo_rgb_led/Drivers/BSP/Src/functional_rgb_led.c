@@ -233,13 +233,17 @@ void FUNCTIONAL_RGB_LED_InitSequences(void){
 	sequenceList[AXSH_SEQ_TYPE] = &auxInShoeSequence;
 	sequenceInitFuncList[AXSH_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitAUXInShoeSeq;
 
-	FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(&auxInShoe1Sequence);
-	sequenceList[AXSH1_SEQ_TYPE] = &auxInShoe1Sequence;
-	sequenceInitFuncList[AXSH1_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq;
+	FUNCTIONAL_RGB_LED_InitAUXInShoe1No2Seq(&auxInShoe1No2Sequence);
+	sequenceList[AXSH1N2_SEQ_TYPE] = &auxInShoe1No2Sequence;
+	sequenceInitFuncList[AXSH1N2_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitAUXInShoe1No2Seq;
 
-	FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(&fwUpgradeSequence);
-	sequenceList[FWUP_SEQ_TYPE] = &fwUpgradeSequence;
-	sequenceInitFuncList[FWUP_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitFWUpgradeSeq;
+	FUNCTIONAL_RGB_LED_InitFWUpgradeShoe1Seq(&fwUpgradeShoe1Sequence);
+	sequenceList[FWUPSH1_SEQ_TYPE] = &fwUpgradeShoe1Sequence;
+	sequenceInitFuncList[FWUPSH1_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitFWUpgradeShoe1Seq;
+
+	FUNCTIONAL_RGB_LED_InitFWUpgradeShoe2Seq(&fwUpgradeShoe2Sequence);
+	sequenceList[FWUPSH2_SEQ_TYPE] = &fwUpgradeShoe2Sequence;
+	sequenceInitFuncList[FWUPSH2_SEQ_TYPE] = FUNCTIONAL_RGB_LED_InitFWUpgradeShoe2Seq;
 
 	FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(&fwUpgradeCompleteSequence);
 	sequenceList[FWUPCPLT_SEQ_TYPE] = &fwUpgradeCompleteSequence;
@@ -355,11 +359,11 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 
 	//step 2: exp ramp 250 ms to red (linear ramp for now, and use white color for now)
 	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	//TODO: change to red
 
-
-	//step 3: hold 2 sec red
+	//step 3: hold 500 millisec red
 	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
-
+	//TODO: change to red
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
 	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
@@ -382,63 +386,389 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 
 }
 void FUNCTIONAL_RGB_LED_InitChargingSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to white (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 3: hold 500 sec white
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500);
+
+	//step 6: repeat steps 2 - 5 (1 - 4 using 0 index) - last step = true
+	FUNCTIONAL_RGB_LED_InitRepeatStep(&sequence->steps[5], true, 5, 1, 1);
+
+
+	//fill in steps
+	sequence->step_count = 6;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_CHARGING;
+	sequence->loop = true; //loop
+	sequence->valid = true;
 
 }
 void FUNCTIONAL_RGB_LED_InitChargedSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//step 1: Setpoint Step - set solid color black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+	//step 2: Ramp Step - increase color to white at a duration of 500 ms
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.500, RGB_LIN_MODE);
+
+	//step 3: Setpoint Step - set color to white
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[2], true, 2, 0, WhiteColor);
+
+	sequence->step_count = 3;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_CHARGED;
+	sequence->loop = false; //don't loop
+	sequence->valid = true;
 
 }
 void FUNCTIONAL_RGB_LED_InitResetSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to red (linear ramp for now, white for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	//TODO: change to red
+
+	//step 3: hold 500 sec red (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500);
+
+	//step 6: exp ramp 250 ms to red (linear ramp for now, white for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[5], false, 5, 6, WhiteColor, 0.250, RGB_LIN_MODE);
+
+	//step 7: hold 4 sec sold red (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[6], false, 6, 7, WhiteColor, 4.0);
+	//TODO: change to red
+
+	//step 8: exp ramp 250 ms to black
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[7], false, 7, 8, BlackColor, 0.250, RGB_LIN_MODE);
+
+	//step 9: hold 100 ms solid black
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[8], true, 8, 0, BlackColor, 0.100);
+
+
+	//fill in steps
+	sequence->step_count = 9;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_RESET_SHOE;
+	sequence->loop = false; //no loop
+	sequence->valid = true;
 
 }
 void FUNCTIONAL_RGB_LED_InitBTConnectedSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//step 1: Setpoint Step - set solid color black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+	//step 2: Ramp Step - increase color to white at a duration of 1 sec
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.500, RGB_LIN_MODE);
+
+	//step 3: Hold Step - set color to white and hold for duration of 1 sec
+	//			- make this step the last step (so sequence repeats)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[2], true, 2, 0, WhiteColor);
+
+	sequence->step_count = 3;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_BT_CONNECTED;
+	sequence->loop = false; //don't loop
+	sequence->valid = true;
 
 }
 void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//TODO: change white to blue
+
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to blue (linear ramp for now, and use white color for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 3: hold 500 ms sec blue (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop (last step = true)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], true, 4, 0, BlackColor, 0.500);
+
+
+	//fill in steps
+	sequence->step_count = 5;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_BT_DISCOVERABLE;
+	sequence->loop = true; //loop until connected
+	sequence->valid = true;
 }
 void FUNCTIONAL_RGB_LED_InitBTPairingSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//TODO: change white to blue
+
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to blue (linear ramp for now, and use white color for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 3: hold 500 ms sec blue (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop (last step = true)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], true, 4, 0, BlackColor, 0.500);
+
+
+	//fill in steps
+	sequence->step_count = 5;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_BT_PAIRING;
+	sequence->loop = true; //loop until connected
+	sequence->valid = true;
 }
 void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//TODO: change white to blue
+
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to blue (linear ramp for now, and use white color for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 3: hold 500 ms sec blue (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop (last step = true)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], true, 4, 0, BlackColor, 0.500);
+
+
+	//fill in steps
+	sequence->step_count = 5;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_BT_CONNECTING;
+	sequence->loop = true; //loop until connected
+	sequence->valid = true;
 }
 void FUNCTIONAL_RGB_LED_InitAUXInShoeSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//step 1: Setpoint Step - set solid color black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+	//step 2: Ramp Step - increase color to white at a duration of 500 ms
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.500, RGB_LIN_MODE);
+
+	//step 3: Hold Step - set color to white
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[2], true, 2, 0, WhiteColor);
+
+	sequence->step_count = 3;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_AUX_IN_SHOE;
+	sequence->loop = false; //don't loop
+	sequence->valid = true;
 }
-void FUNCTIONAL_RGB_LED_InitAUXInShoe1Seq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+void FUNCTIONAL_RGB_LED_InitAUXInShoe1No2Seq(rgb_led_sequence_t * sequence){
+
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to blue (linear ramp for now, and use white color for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 3: hold 500 ms sec blue (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop (last step = true)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], true, 4, 0, BlackColor, 0.500);
+
+
+	//fill in steps
+	sequence->step_count = 5;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_AUX_IN_SHOE1NO2;
+	sequence->loop = true; //loop until both shoes connected
+	sequence->valid = true;
 }
-void FUNCTIONAL_RGB_LED_InitFWUpgradeSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+
+
+void FUNCTIONAL_RGB_LED_InitFWUpgradeShoe1Seq(rgb_led_sequence_t * sequence){
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to white (linear ramp for now, white for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+	//step 3: hold 1 sec red (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 1.0);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 1 sec black
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 1.0);
+
+	//step 6: exp ramp 250 ms to white (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[5], false, 5, 6, WhiteColor, 0.250, RGB_LIN_MODE);
+
+	//step 7: hold 250 ms sold white
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[6], false, 6, 7, WhiteColor, 0.250);
+	//TODO: change to red
+
+	//step 8: exp ramp 250 ms to black
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[7], false, 7, 8, BlackColor, 0.250, RGB_LIN_MODE);
+
+	//step 9: hold 250 ms solid black
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[8], true, 8, 0, BlackColor, 0.250);
+
+
+	//fill in steps
+	sequence->step_count = 9;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_FW_UPGRADE_SHOE1;
+	sequence->loop = true; //repeat until fw upload complete
+	sequence->valid = true;
 }
+
+void FUNCTIONAL_RGB_LED_InitFWUpgradeShoe2Seq(rgb_led_sequence_t * sequence){
+	//fast blink
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to white (linear ramp for now, white for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+
+	//step 3: hold 250 ms red (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.250);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 1 sec black
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 1.0);
+
+	//slow blink
+	//step 6: exp ramp 250 ms to white (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[5], false, 5, 6, WhiteColor, 0.250, RGB_LIN_MODE);
+
+	//step 7: hold 1 sec sold white
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[6], false, 6, 7, WhiteColor, 1.0);
+	//TODO: change to red
+
+	//step 8: exp ramp 250 ms to black
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[7], false, 7, 8, BlackColor, 0.250, RGB_LIN_MODE);
+
+	//step 9: hold 1 sec solid black
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[8], true, 8, 0, BlackColor, 1.0);
+
+
+	//fill in steps
+	sequence->step_count = 9;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_FW_UPGRADE_SHOE2;
+	sequence->loop = true; //repeat until fw upload complete
+	sequence->valid = true;
+}
+
+
+
 void FUNCTIONAL_RGB_LED_InitFWUpgradeCompleteSeq(rgb_led_sequence_t * sequence){
-	sequence->loop = false;
-	sequence->enabled = false;
-	sequence->valid = false;
+	//step 1: setpoint solid black (off)
+	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
+
+
+	//step 2: exp ramp 250 ms to red (linear ramp for now, white for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	//TODO: change to red
+
+	//step 3: hold 500 sec red (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+
+
+	//step 4: exp ramp 250 ms to black (linear ramp for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+
+
+	//step 5: hold 500 ms black then stop
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500);
+
+	//step 6: exp ramp 250 ms to red (linear ramp for now, white for now)
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[5], false, 5, 6, WhiteColor, 0.250, RGB_LIN_MODE);
+
+	//step 7: hold 4 sec sold red (white for now)
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[6], false, 6, 7, WhiteColor, 4.0);
+	//TODO: change to red
+
+	//step 8: exp ramp 250 ms to black
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[7], false, 7, 8, BlackColor, 0.250, RGB_LIN_MODE);
+
+	//step 9: hold 100 ms solid black
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[8], true, 8, 0, BlackColor, 0.100);
+
+
+	//fill in steps
+	sequence->step_count = 9;
+	sequence->complete = false;
+	sequence->current_step_num = 0;
+	sequence->seq_type = RGBSEQ_FW_UPGRADE_COMPLETE;
+	sequence->loop = false; //no loop
+	sequence->valid = true;
 }
 
 

@@ -358,19 +358,21 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 
 
 	//step 2: exp ramp 250 ms to red (linear ramp for now, and use white color for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	//0.250
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 2.00, RGB_LIN_MODE);
 	//TODO: change to red
 
 	//step 3: hold 500 millisec red
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.100);
 	//TODO: change to red
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+	//250 ms
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 2.00, RGB_LIN_MODE); //blackcolor
 
 
 	//step 5: hold 500 ms black then stop
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500); //0.500
 
 	//step 6: repeat steps 2 - 5 (1 - 4 using 0 index) - last step = true
 	FUNCTIONAL_RGB_LED_InitRepeatStep(&sequence->steps[5], true, 5, 1, 1);
@@ -866,14 +868,21 @@ void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step, bool last, int crn
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
+
 	RGB_LED_GetColor(FUNC_RGB_LED_NUM, &step->color);
 	rgb_color_t dlta_clr;
+
 	FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
+
 	if(step->time <= 0){
 		//get the scale used to increment the led (just run this once)
 		step->scales.red = dlta_clr.red / step->duration;
+		step->color_offsets.red = step->color.red;
 		step->scales.green = dlta_clr.green / step->duration;
+		step->color_offsets.green = step->color.green;
 		step->scales.blue = dlta_clr.blue / step->duration;
+		step->color_offsets.blue = step->color.blue;
+
 	}
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
 	int color_diff = dlta_clr.red + dlta_clr.green + dlta_clr.blue;
@@ -885,6 +894,7 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 		step->time = 0;
 		return;
 	}
+
 	else{
 		//increment color and update rgb led driver pwm -- keep doing this until color setpoint reached
 		FUNCTIONAL_RGB_LED_GenStepRampOutput(step); //this will generate linear, exponential or log output based on step.mode attribute
@@ -985,9 +995,12 @@ void FUNCTIONAL_RGB_LED_GenStepRampOutput(rgb_led_step_t * step){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SetLinearOutput(rgb_led_step_t * step){
-	step->color.red += STEP_TIME_PER_CYCLE * step->scales.red;
-	step->color.green += STEP_TIME_PER_CYCLE * step->scales.green;
-	step->color.blue += STEP_TIME_PER_CYCLE * step->scales.blue;
+
+	float t = step->time;
+	//step->color.red += (STEP_TIME_PER_CYCLE * redscale);
+	step->color.red = (t * step->scales.red) + step->color_offsets.red;
+	step->color.green = (t * step->scales.green) + step->color_offsets.green;
+	step->color.blue = (t * step->scales.blue) + step->color_offsets.blue;
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
 

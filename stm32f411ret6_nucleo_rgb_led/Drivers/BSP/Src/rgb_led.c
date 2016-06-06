@@ -515,7 +515,8 @@ float RGB_LED_GetDutyCycle(rgb_led_color_conf_t * colorConfig){
 		duty_cycle_pulses = colorConfig->pwmConfig.Pulse;;
 	}
 
-	duty_cycle_percent = duty_cycle_pulses * 100 / timer_period;
+	duty_cycle_percent = duty_cycle_pulses * 100.0;
+	duty_cycle_percent = duty_cycle_percent / timer_period;
 	return duty_cycle_percent;
 
 	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?

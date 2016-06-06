@@ -232,7 +232,7 @@ int main(void)
   {
 
 
-
+/*
 	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 4, 0xFFFF);
 	  if(rxMsg[0]=='!'){
 		    seqNum = rxMsg[1]-'0';
@@ -244,7 +244,7 @@ int main(void)
 		    	HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
 		    }
 	  }
-
+*/
 
 
 
@@ -252,24 +252,6 @@ int main(void)
 
 }
 
-//override printf primitive
-/**
-* @brief Function that printf uses to push characters to serial port
-* @param ch: ascii character
-* @retval character
-*/
-/*
-int putcharx(int ch)
-{
-uint8_t data_ch = ch;
-uint8_t * dataPtr = &data_ch;
-uint16_t Size = 1;
-uint32_t Timeout = 1000; //millisec?
-while (HAL_USART_GetState(&USART_Handle) == HAL_USART_STATE_RESET);
-HAL_USART_Transmit(&USART_Handle, dataPtr,Size, Timeout);
-return ch;
-}
-*/
 
 
 /** System Clock Configuration

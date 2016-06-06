@@ -24,7 +24,7 @@
 //TIM REG Used for Interrupt (this is what runs the rgb led sequence)
 #define FUNC_RGB_INT_TIM_REG	TIM4 //this must match the TIMx_IRQHandler definition in the function_rgb_led.c file
 #define FUNC_RGB_INT_TIM_IRQ	TIM4_IRQn
-#define STEP_TIME_PER_CYCLE		0.02 //(1.0/RGB_PWMFREQ_DFLT) //sec per timer interrupt -- TODO: need to define this appropriately
+#define STEP_TIME_PER_CYCLE		(1.0/RGB_PWMFREQ_DFLT) //sec per timer interrupt -- TODO: need to define this appropriately
 
 //Common sequence colors
 #define BLACK_CLR				0
@@ -111,6 +111,7 @@ typedef struct rgb_led_step_t {
 	int next_step_num;
 	bool complete;
 	color_scales_t scales; //color diff / duration
+	rgb_color_t color_offsets; //use to calc new color: y = mx + b (b = offset) and m = color scale and x = time
 	rgb_modes_t mode; //log, exponential, linear...etc
 	void (*func_handler)(); //ptr to function that will run the step (for ex: FUNCTIONAL_RGB_LED_Ramp)
 	rgb_led_sequence_t * parent_seq;

@@ -13,9 +13,9 @@
 */
 
 //RGB Colors
-#define RGB_SOLID_RED			255
-#define RGB_SOLID_GREEN			255
-#define RGB_SOLID_BLUE			255
+#define RGB_SOLID_RED			127 //255
+#define RGB_SOLID_GREEN			127
+#define RGB_SOLID_BLUE			127
 #define MIN_COLOR_DIFF			10
 
 #define MAX_RGB_STEPS			10 //max steps in an rgb led sequence (ex: ramp, hold, repeat...etc)
@@ -70,7 +70,7 @@
  */
 
 //rgb function modes (logarithmic, exponential, linear)
-typedef enum rgb_modes_t {RGB_NO_MODE, RGB_LIN_MODE, RGB_LOG_MODE, RGB_EXP_MODE} rgb_modes_t;
+typedef enum rgb_modes_t {RGB_NO_MODE, RGB_LIN_MODE, RGB_EXP_MODE, RGB_LOG_MODE} rgb_modes_t;
 typedef enum rgb_step_type_t {RAMP_STEP=RAMP_STEP_TYPE, HOLD_STEP=HOLD_STEP_TYPE, SETPOINT_STEP=SETPOINT_STEP_TYPE, REPEAT_STEP=REPEAT_STEP_TYPE} rgb_step_type_t;
 typedef enum rgb_state_colors_t {BLACK=BLACK_CLR, WHITE=WHITE_CLR, RED=RED_CLR, BLUE=BLUE_CLR, GREEN=GREEN_CLR} rgb_state_colors_t;
 typedef enum rgb_seq_type_t {RGBSEQ_ON=ON_SEQ_TYPE, RGBSEQ_OFF=OFF_SEQ_TYPE, RGBSEQ_CRITICAL=CRTCL_SEQ_TYPE, RGBSEQ_CHARGING=CHRNG_SEQ_TYPE, RGBSEQ_CHARGED=CHRGD_SEQ_TYPE,
@@ -153,6 +153,7 @@ func_rgb_led_status_t funcRgbStatus;
 
 //Cmd line testing
 float CrtclSeqUpDur, CrtclSeqDwnDur, CrtclSeqHldDur;
+rgb_modes_t CrtclSeqMode;
 
 
 /*

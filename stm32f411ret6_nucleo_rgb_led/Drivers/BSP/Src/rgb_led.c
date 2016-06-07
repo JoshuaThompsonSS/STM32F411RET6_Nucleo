@@ -198,7 +198,7 @@ void RGB_LED_InitPWMConfig(rgb_led_color_conf_t * colorConfig){
 		RGB_LED_ErrorHandler();
 	}
 
-	colorConfig->pwmConfig.OCMode = TIM_OCMODE_PWM2; //PWM1
+	colorConfig->pwmConfig.OCMode = TIM_OCMODE_PWM1; //PWM2
 	colorConfig->pwmConfig.OCFastMode = TIM_OCFAST_DISABLE;
 	colorConfig->pwmConfig.OCPolarity = TIM_OCPOLARITY_HIGH; //HIGH
 	colorConfig->pwmConfig.Pulse = RGB_PWMDUTY_DFLT * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
@@ -465,7 +465,7 @@ void RGB_LED_SetDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * color
 	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
 	//TODO: validate the duty cycle is a unsigned int value between 0 and 100
 	//update the duty cycle value in the pwm structure (this does not update the pwm, it's just so record our new duty cycle value)
-	colorConfig->pwmConfig.Pulse = duty_cycle_percent * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
+	colorConfig->pwmConfig.Pulse = duty_cycle_percent * timer_period / 100.0;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
 
 	//Now update the duty cycle by updating the pulse value, the timer will update the duty cycle after it completes its most recent period capture compare
 	//TIMx->CCR1 = OC_Config->Pulse

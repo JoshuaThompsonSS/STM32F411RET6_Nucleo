@@ -29,7 +29,6 @@
 /*
  ********  INCLUDE FILES & EXTERNAL VARIABLES  ********
  */
-#include <math.h>
 #include "functional_rgb_led.h"
 
 
@@ -114,6 +113,7 @@ void FUNCTIONAL_RGB_LED_InitCmdLine(void){
 	CrtclSeqUpDur = 0.10;
 	CrtclSeqDwnDur = 0.10;
 	CrtclSeqHldDur = 0.500;
+	CrtclSeqMode = RGB_LIN_MODE;
 }
 
 /* ********************************************************************************
@@ -375,7 +375,7 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 
 	//step 2: exp ramp 250 ms to red (linear ramp for now, and use white color for now)
 	//0.250
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, CrtclSeqUpDur, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, CrtclSeqUpDur, CrtclSeqMode);
 	//TODO: change to red
 
 	//step 3: hold 500 millisec red
@@ -384,7 +384,7 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
 	//250 ms
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, CrtclSeqDwnDur, RGB_LIN_MODE); //blackcolor
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, CrtclSeqDwnDur, CrtclSeqMode); //blackcolor
 
 
 	//step 5: hold 500 ms black then stop
@@ -871,6 +871,34 @@ void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step, bool last, int crn
 
 }
 
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_GetColorScales()
+** DESCRIPTION:
+** 				- calculate slope for either linear, log or exponential ramp equation
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_GetColorScales(rgb_led_step_t * step){
+	switch(step->mode){
+	case RGB_LIN_MODE:
+		step->scales.red = (step->color_setpoint.red - step->color_offsets.red) / step->duration;
+		step->scales.green = (step->color_setpoint.green - step->color_offsets.green) / step->duration;
+		step->scales.blue = (step->color_setpoint.green - step->color_offsets.green) / step->duration;
+		break;
+	case RGB_EXP_MODE:
+		step->scales.red = (step->color_setpoint.red - step->color_offsets.red)  / (step->duration*step->duration * step->duration);
+		step->scales.green = (step->color_setpoint.green - step->color_offsets.green)  / (step->duration*step->duration *step->duration);
+		step->scales.blue = (step->color_setpoint.blue - step->color_offsets.blue)  / (step->duration*step->duration *step->duration);
+		break;
+	case RGB_LOG_MODE:
+		//nothing dev yet
+		break;
+	default:
+		break;
+	}
+	return;
+}
+
 //Step functions to create specific RGB LED sequences
 
 /* ********************************************************************************
@@ -892,12 +920,12 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 
 	if(step->time <= 0){
 		//get the scale used to increment the led (just run this once)
-		step->scales.red = dlta_clr.red / step->duration;
+
 		step->color_offsets.red = step->color.red;
-		step->scales.green = dlta_clr.green / step->duration;
 		step->color_offsets.green = step->color.green;
-		step->scales.blue = dlta_clr.blue / step->duration;
 		step->color_offsets.blue = step->color.blue;
+		//get slopes for exp (just x^2 for now) or linear equations (y = mx + b)
+		FUNCTIONAL_RGB_LED_GetColorScales(step);
 
 	}
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
@@ -1029,6 +1057,11 @@ void FUNCTIONAL_RGB_LED_SetLinearOutput(rgb_led_step_t * step){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step){
 	//TODO: generate exponential output
+	//output = scale(x^3) + offset
+	float t = step->time;
+	step->color.red = step->scales.red*(t*t*t) + step->color_offsets.red;
+	step->color.green = step->scales.green*(t*t*t) + step->color_offsets.green;
+	step->color.blue = step->scales.blue*(t*t*t) + step->color_offsets.blue;
 
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
@@ -1045,9 +1078,6 @@ void FUNCTIONAL_RGB_LED_SetLogOutput(rgb_led_step_t * step){
 	//if time/duration >= 50% then use line equation 2
 	//else scale with normal linear output
 	//output = c*log(scale*(time + 1)) + offset
-	double tConst = 10, tScale = 100;
-	double time = step->time;
-	step->color.red = tConst*log(tScale*(time + 1)) + step->color_offsets.red;
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
 

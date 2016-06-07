@@ -228,14 +228,16 @@ int main(void)
   //rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
   Init_USART();
   char *msg = "Hello Nucleo Fun!\n\r";
-  char *rxMsg = (char*)malloc(sizeof(char)*100); //"!02u200h5000?\n";
+  int maxStr = 100;
+  char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
   float upDur, downDur, holdDur;
-  int minColor, maxColor;
+  int modeNum;
   int seqNum = 0;
   rgbHandle.enabled = true;
-  FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_OFF);
+  FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CRITICAL);
   while (1)
   {
+
 	  int i = 0;
 	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 100, 0xFFFF);
 	  if(rxMsg[i]=='!'){
@@ -290,17 +292,33 @@ int main(void)
 						available = 0;
 					}
 				}
+				else if(rxMsg[i]=='m'){
+					char * nums = (char*)malloc(sizeof(char)*maxChars);
+					i++;
+					available = 1;
+					int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+					modeNum = convertStrToMs(nums, pwCnt);
+					i += (pwCnt);
+					if(modeNum ==1){
+						CrtclSeqMode = RGB_LIN_MODE;
+					}
+					else if(modeNum == 2){
+						CrtclSeqMode = RGB_EXP_MODE;
+					}
+					if(available){
+						HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+						available = 0;
+					}
+				}
 				if(tries>= 100){tries = 0; break;}
-
 		   }
 
-
+		    rxMsg = (char*)calloc(maxStr, sizeof(char)); //reset
 		    if(seqNum < RGB_SEQ_COUNT){
 				FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t) seqNum);
-				HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
+				//HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
 			}
 	  }
-
 
     }
 
@@ -326,7 +344,7 @@ int getNumStr(char * buffer, char * nums, int startIndex, int maxChars){
 int convertStrToMs(char * numStr, int powerCount){
 	int total = 0;
 	int count = powerCount - 1;
-	if(count < 0){return numStr[0] - '0';}
+	if(count <= 0){return numStr[0] - '0';}
 
 	for(int i = 0; i< count; i++){
 		int num = numStr[i] - '0';

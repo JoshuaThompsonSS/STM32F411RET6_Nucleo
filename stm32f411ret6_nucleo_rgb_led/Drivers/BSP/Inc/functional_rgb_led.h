@@ -132,6 +132,7 @@ typedef struct rgb_led_sequence_t {
 
 //rgb led handle
 typedef struct rgb_led_handle_t {
+	bool enabled;
 	void (*set_color)();
 	void (*get_color)();
 	void (*get_color_diff)();
@@ -149,6 +150,9 @@ rgb_led_handle_t rgbHandle;
 
 //running status
 func_rgb_led_status_t funcRgbStatus;
+
+//Cmd line testing
+float CrtclSeqUpDur, CrtclSeqDwnDur, CrtclSeqHldDur;
 
 
 /*
@@ -186,6 +190,7 @@ TIM_HandleTypeDef RGBInterruptTimHandle;
 /*
  * --------Function Declarations
 */
+void FUNCTIONAL_RGB_LED_InitCmdLine(void);
 void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType);
 bool FUNCTIONAL_RGB_LED_isRunning(void);
 void FUNCTIONAL_RGB_LED_ErrorHandler(void);

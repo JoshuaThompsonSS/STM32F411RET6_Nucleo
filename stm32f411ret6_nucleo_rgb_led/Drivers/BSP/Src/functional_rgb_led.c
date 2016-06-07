@@ -29,6 +29,7 @@
 /*
  ********  INCLUDE FILES & EXTERNAL VARIABLES  ********
  */
+#include <math.h>
 #include "functional_rgb_led.h"
 
 
@@ -40,7 +41,6 @@ rgb_color_t BlueColor = {0, 0, RGB_SOLID_GREEN};
 rgb_color_t GreenColor = {0, RGB_SOLID_BLUE, 0};
 rgb_color_t WhiteColor = {RGB_SOLID_RED, RGB_SOLID_GREEN, RGB_SOLID_BLUE};
 rgb_color_t BlackColor = {0, 0, 0};
-
 
 
 /*
@@ -60,7 +60,7 @@ void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType){
 		rgbHandle.sequence->enabled = false; //disable currently running seq
 		if(seqType < RGB_SEQ_COUNT && sequenceList[seqType]->valid){
 			rgbHandle.next_sequence = sequenceList[seqType];
-			rgbHandle.next_sequence->enabled = true;
+			//rgbHandle.next_sequence->enabled = true;
 		}
 		else{
 			FUNCTIONAL_RGB_LED_ErrorHandler();
@@ -102,6 +102,19 @@ void FUNCTIONAL_RGB_LED_ErrorHandler(void){
 	funcRgbStatus.error = true;
 }
 
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitCmdLine()
+** DESCRIPTION:
+** 				-Initialize cmd line testing variables and other stuff
+** NOTE:
+ *
+*********************************************************************************** */
+
+void FUNCTIONAL_RGB_LED_InitCmdLine(void){
+	CrtclSeqUpDur = 0.10;
+	CrtclSeqDwnDur = 0.10;
+	CrtclSeqHldDur = 0.500;
+}
 
 /* ********************************************************************************
 ** FUNCTION NAME: FUNCTIONAL_RGB_LED_StartService()
@@ -111,11 +124,14 @@ void FUNCTIONAL_RGB_LED_ErrorHandler(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_StartService(void){
+	//Cmd line testing
+	FUNCTIONAL_RGB_LED_InitCmdLine();
 	//init rgb led driver handle (rgbHandle)
 	FUNCTIONAL_RGB_LED_InitHandle();
 	//init all the common functional rgb led sequences
 	FUNCTIONAL_RGB_LED_InitSequences();
 	//init driver
+	rgbHandle.enabled = true;
 	rgbHandle.init();
 	//start driver
 	rgbHandle.start();
@@ -138,6 +154,7 @@ void FUNCTIONAL_RGB_LED_StartService(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_StopService(void){
 	//start driver
+	rgbHandle.enabled = false;
 	rgbHandle.stop();
 
 	//init driver
@@ -356,23 +373,22 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 	//step 1: setpoint solid black (off)
 	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
 
-
 	//step 2: exp ramp 250 ms to red (linear ramp for now, and use white color for now)
 	//0.250
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 2.00, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, CrtclSeqUpDur, RGB_LIN_MODE);
 	//TODO: change to red
 
 	//step 3: hold 500 millisec red
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.100);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, CrtclSeqHldDur);
 	//TODO: change to red
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
 	//250 ms
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 2.00, RGB_LIN_MODE); //blackcolor
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, CrtclSeqDwnDur, RGB_LIN_MODE); //blackcolor
 
 
 	//step 5: hold 500 ms black then stop
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500); //0.500
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, CrtclSeqHldDur); //0.500
 
 	//step 6: repeat steps 2 - 5 (1 - 4 using 0 index) - last step = true
 	FUNCTIONAL_RGB_LED_InitRepeatStep(&sequence->steps[5], true, 5, 1, 1);
@@ -1013,6 +1029,7 @@ void FUNCTIONAL_RGB_LED_SetLinearOutput(rgb_led_step_t * step){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step){
 	//TODO: generate exponential output
+
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
 
@@ -1025,6 +1042,12 @@ void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SetLogOutput(rgb_led_step_t * step){
 	//TODO: generate logarithmic output
+	//if time/duration >= 50% then use line equation 2
+	//else scale with normal linear output
+	//output = c*log(scale*(time + 1)) + offset
+	double tConst = 10, tScale = 100;
+	double time = step->time;
+	step->color.red = tConst*log(tScale*(time + 1)) + step->color_offsets.red;
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
 
@@ -1101,10 +1124,12 @@ void FUNCTIONAL_RGB_LED_StopInterruptTimer(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SequenceHandler(void){
+	if(!rgbHandle.enabled){return;}
 	if(rgbHandle.next_sequence != NULL && rgbHandle.sequence != NULL && !rgbHandle.sequence->enabled){
 
 		if(rgbHandle.next_sequence->seq_type < RGB_SEQ_COUNT){
 			rgbHandle.sequence = rgbHandle.next_sequence;
+			rgbHandle.sequence->enabled = true;
 			rgbHandle.next_sequence = NULL;
 			sequenceInitFuncList[rgbHandle.sequence->seq_type](rgbHandle.sequence);
 		}

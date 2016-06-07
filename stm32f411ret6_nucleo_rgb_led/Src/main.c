@@ -35,6 +35,7 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "functional_rgb_led.h"
+#include <math.h>
 #include "stdlib.h"
 #include "string.h"
 
@@ -59,6 +60,8 @@ UART_HandleTypeDef UART_Handle;
 
 
 /* Private function prototypes -----------------------------------------------*/
+int getNumStr(char * buffer, char * nums, int startIndex, int maxChars);
+int convertStrToMs(char * numStr, int powerCount);
 void SystemClock_Config(void);
 
 /* USER CODE BEGIN PFP */
@@ -225,33 +228,113 @@ int main(void)
   //rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
   Init_USART();
   char *msg = "Hello Nucleo Fun!\n\r";
-  char *rxMsg = (char*)malloc(sizeof(char)*100);
+  char *rxMsg = (char*)malloc(sizeof(char)*100); //"!02u200h5000?\n";
+  float upDur, downDur, holdDur;
+  int minColor, maxColor;
   int seqNum = 0;
-  FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CRITICAL);
+  rgbHandle.enabled = true;
+  FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_OFF);
   while (1)
   {
-
-
-/*
-	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 4, 0xFFFF);
-	  if(rxMsg[0]=='!'){
-		    seqNum = rxMsg[1]-'0';
-		    seqNum = seqNum*10 + (rxMsg[2]-'0'); //convert char number to actual number
+	  int i = 0;
+	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 100, 0xFFFF);
+	  if(rxMsg[i]=='!'){
+		    i++;
+		    seqNum = rxMsg[i]-'0';
+		    i++;
+		    seqNum = seqNum*10 + (rxMsg[i]-'0'); //convert char number to actual number
 		    									//ex: '04' = 0*10 + 4 = 4
 		    									//ex: '14' = 1*10 + 4 = 14
-		    if(seqNum < RGB_SEQ_COUNT){
-		    	FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t) seqNum);
-		    	HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
-		    }
-	  }
-*/
+		    int maxChars = 10;
+		    int available = 0;
+		    i++;
+		    int tries = 0;
+		    while(rxMsg[i] != '?'){
+		    	tries++;
+				if(rxMsg[i]=='u'){
+					char * nums = (char*)malloc(sizeof(char)*maxChars);
+					i++;
+					available = 1;
+					int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+					upDur = convertStrToMs(nums, pwCnt);
+					i += (pwCnt);
+					CrtclSeqUpDur = upDur/1000.0;
+					if(available){
+						HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+						available = 0;
+					}
+				}
+				else if(rxMsg[i]=='d'){
+					char * nums = (char*)malloc(sizeof(char)*maxChars);
+					i++;
+					available = 1;
+					int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+					downDur = convertStrToMs(nums, pwCnt);
+					i += (pwCnt);
+					CrtclSeqDwnDur = downDur/1000.0;
+					if(available){
+						HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+						available = 0;
+					}
+				}
+				else if(rxMsg[i]=='h'){
+					char * nums = (char*)malloc(sizeof(char)*maxChars);
+					i++;
+					available = 1;
+					int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+					holdDur = convertStrToMs(nums, pwCnt);
+					i += (pwCnt);
+					CrtclSeqHldDur = holdDur/1000.0;
+					if(available){
+						HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+						available = 0;
+					}
+				}
+				if(tries>= 100){tries = 0; break;}
 
+		   }
+
+
+		    if(seqNum < RGB_SEQ_COUNT){
+				FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t) seqNum);
+				HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
+			}
+	  }
 
 
     }
 
 }
 
+//get number string
+int getNumStr(char * buffer, char * nums, int startIndex, int maxChars){
+	int pwCnt = 0;
+		for(int j = startIndex, i = 0; j<(startIndex + maxChars); j++, i++){
+			if(buffer[j] >= '0' && buffer[j] <= '9'){
+				nums[i] = buffer[j];
+				pwCnt++;
+			}
+			else{
+				nums[i] = '\0';
+				break;
+			}
+		}
+		return pwCnt;
+}
+
+//convert chars to millisec num
+int convertStrToMs(char * numStr, int powerCount){
+	int total = 0;
+	int count = powerCount - 1;
+	if(count < 0){return numStr[0] - '0';}
+
+	for(int i = 0; i< count; i++){
+		int num = numStr[i] - '0';
+		num = num * pow(10,count-i); //ex: if numStr = '50' then count = 2 - 1 = 1, 5*10^1 + 0*10^0 = 50
+		total += num;
+	}
+	return total;
+}
 
 
 /** System Clock Configuration

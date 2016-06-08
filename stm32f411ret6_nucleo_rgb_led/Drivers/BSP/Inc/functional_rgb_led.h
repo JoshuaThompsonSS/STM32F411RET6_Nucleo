@@ -16,14 +16,14 @@
 #define RGB_SOLID_RED			127 //255
 #define RGB_SOLID_GREEN			127
 #define RGB_SOLID_BLUE			127
-#define MIN_COLOR_DIFF			10
+#define MIN_COLOR_DIFF			22//10
 
 #define MAX_RGB_STEPS			10 //max steps in an rgb led sequence (ex: ramp, hold, repeat...etc)
 
 //Service / Timer
 //TIM REG Used for Interrupt (this is what runs the rgb led sequence)
-#define FUNC_RGB_INT_TIM_REG	TIM4 //this must match the TIMx_IRQHandler definition in the function_rgb_led.c file
-#define FUNC_RGB_INT_TIM_IRQ	TIM4_IRQn
+#define FUNC_RGB_INT_TIM_REG	TIM4 //TIM4//this must match the TIMx_IRQHandler definition in the function_rgb_led.c file
+#define FUNC_RGB_INT_TIM_IRQ	TIM4_IRQn//TIM1_UP_TIM10_IRQn//TIM4_IRQn
 #define STEP_TIME_PER_CYCLE		(1.0/RGB_PWMFREQ_DFLT) //sec per timer interrupt -- TODO: need to define this appropriately
 
 //Common sequence colors

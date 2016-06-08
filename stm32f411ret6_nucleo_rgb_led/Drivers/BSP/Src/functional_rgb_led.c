@@ -132,9 +132,9 @@ void FUNCTIONAL_RGB_LED_StartService(void){
 	FUNCTIONAL_RGB_LED_InitSequences();
 	//init driver
 	rgbHandle.enabled = true;
-	rgbHandle.init();
+	FUNCTIONAL_RGB_LED_Init();
 	//start driver
-	rgbHandle.start();
+	FUNCTIONAL_RGB_LED_Start();
 
 	//init timer interrupt
 	FUNCTIONAL_RGB_LED_InitInterruptTimer();
@@ -155,10 +155,10 @@ void FUNCTIONAL_RGB_LED_StartService(void){
 void FUNCTIONAL_RGB_LED_StopService(void){
 	//start driver
 	rgbHandle.enabled = false;
-	rgbHandle.stop();
+	FUNCTIONAL_RGB_LED_Stop();
 
 	//init driver
-	rgbHandle.de_init();
+	FUNCTIONAL_RGB_LED_DeInit();
 
 	if(rgbHandle.sequence != NULL){
 		rgbHandle.sequence->enabled = false;
@@ -171,7 +171,6 @@ void FUNCTIONAL_RGB_LED_StopService(void){
 	//de-init timer interrupt
 	FUNCTIONAL_RGB_LED_DeInitInterruptTimer();
 	funcRgbStatus.running = false;
-
 
 	return;
 }
@@ -930,7 +929,10 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 	}
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
 	int color_diff = dlta_clr.red + dlta_clr.green + dlta_clr.blue;
-	if(color_diff < 0){color_diff = color_diff * (-1);} //abs value
+	if(color_diff < 0)
+	{
+		color_diff = color_diff * (-1);
+	} //abs value
 
 
 	if((color_diff <= MIN_COLOR_DIFF) && (step->time >= step->duration)){
@@ -1189,21 +1191,25 @@ void FUNCTIONAL_RGB_LED_SequenceHandler(void){
 	  }
 	return;
 }
-
+//TIM4_IRQHandler
 void TIM4_IRQHandler(void){
 	HAL_TIM_IRQHandler(&RGBInterruptTimHandle);
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	//run rgb led sequence routine
-	FUNCTIONAL_RGB_LED_SequenceHandler();
+	if(htim->Instance == FUNC_RGB_INT_TIM_REG){
+		FUNCTIONAL_RGB_LED_SequenceHandler();
+	}
 }
 
 //called by Timer Initialization
 void  HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
-	RGB_LED_EnTimClk(htim->Instance);
-	HAL_NVIC_SetPriority((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ), 0x0F, 0x00);
-	HAL_NVIC_EnableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
+	if(htim->Instance == FUNC_RGB_INT_TIM_REG){
+		RGB_LED_EnTimClk(htim->Instance);
+		HAL_NVIC_SetPriority((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ), 0x0F, 0x00);
+		HAL_NVIC_EnableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
+	}
 }
 
 //called by Timer DeInitialization

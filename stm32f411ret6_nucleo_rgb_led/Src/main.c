@@ -266,7 +266,7 @@ void InitRGBCmd(void){
 	FUNCTIONAL_RGB_LED_StartService();
 	 Init_USART();
 	 rgbHandle.enabled = true;
-	 FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_BT_CONNECTING);
+	 FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CHARGING);
 }
 
 //cmdline loop

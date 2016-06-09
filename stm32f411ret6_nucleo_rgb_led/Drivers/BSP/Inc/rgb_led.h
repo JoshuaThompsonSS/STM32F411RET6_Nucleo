@@ -170,6 +170,7 @@ void RGB_LED_PowerDown(int rgbnum);
 void RGB_LED_ExitShutdown(void);
 void RGB_LED_EnterShutdown(void);
 void RGB_LED_SetColor(int rgbnum, rgb_color_t * color);
+int RGB_LED_Round(float value);
 void RGB_LED_GetColor(int rgbnum, rgb_color_t * color);
 void RGB_LED_ErrorHandler(void);
 void RGB_LED_SetDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig);

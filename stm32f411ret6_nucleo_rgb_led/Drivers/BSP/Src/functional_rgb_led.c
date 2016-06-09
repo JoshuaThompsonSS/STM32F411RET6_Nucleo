@@ -110,8 +110,8 @@ void FUNCTIONAL_RGB_LED_ErrorHandler(void){
 *********************************************************************************** */
 
 void FUNCTIONAL_RGB_LED_InitCmdLine(void){
-	CrtclSeqUpDur = 0.10;
-	CrtclSeqDwnDur = 0.10;
+	CrtclSeqUpDur = 0.250;
+	CrtclSeqDwnDur = 0.250;
 	CrtclSeqHldDur = 0.500;
 	CrtclSeqMode = RGB_LIN_MODE;
 }
@@ -717,7 +717,7 @@ void FUNCTIONAL_RGB_LED_InitFWUpgradeShoe2Seq(rgb_led_sequence_t * sequence){
 
 
 	//step 5: hold 1 sec black
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 1.0);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.250);
 
 	//slow blink
 	//step 6: exp ramp 250 ms to white (linear ramp for now)
@@ -915,8 +915,6 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 	RGB_LED_GetColor(FUNC_RGB_LED_NUM, &step->color);
 	rgb_color_t dlta_clr;
 
-	FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
-
 	if(step->time <= 0){
 		//get the scale used to increment the led (just run this once)
 
@@ -928,6 +926,10 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 
 	}
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
+	//increment color and update rgb led driver pwm -- keep doing this until color setpoint reached
+	FUNCTIONAL_RGB_LED_GenStepRampOutput(step); //this will generate linear, exponential or log output based on step.mode attribute
+
+	FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
 	int color_diff = dlta_clr.red + dlta_clr.green + dlta_clr.blue;
 	if(color_diff < 0)
 	{
@@ -941,10 +943,6 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 		return;
 	}
 
-	else{
-		//increment color and update rgb led driver pwm -- keep doing this until color setpoint reached
-		FUNCTIONAL_RGB_LED_GenStepRampOutput(step); //this will generate linear, exponential or log output based on step.mode attribute
-	}
 
 	return;
 }

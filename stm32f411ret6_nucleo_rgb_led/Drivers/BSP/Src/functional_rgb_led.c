@@ -31,7 +31,6 @@
  */
 #include "functional_rgb_led.h"
 
-
 /*
  ********  DEFINE CONSTANTS & DATA TYPE (GLOBAL VARIABLES) ********
  *///Common colors
@@ -40,7 +39,6 @@ rgb_color_t BlueColor = {0, 0, RGB_SOLID_BLUE};
 rgb_color_t GreenColor = {0, RGB_SOLID_GREEN, 0};
 rgb_color_t WhiteColor = {RGB_SOLID_RED, RGB_SOLID_GREEN, RGB_SOLID_BLUE};
 rgb_color_t BlackColor = {0, 0, 0};
-
 
 /*
  ********  FUNCTION DECLARATION & DEFINTION ********

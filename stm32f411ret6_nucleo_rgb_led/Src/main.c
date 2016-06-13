@@ -35,6 +35,7 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "functional_rgb_led.h"
+#include "fuel_gauge.h"
 #include <math.h>
 #include "stdlib.h"
 #include "string.h"

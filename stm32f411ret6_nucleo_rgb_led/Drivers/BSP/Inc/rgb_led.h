@@ -23,12 +23,12 @@
 *     if sink is positive voltage
 *     if sink is groudn then just do: 0% + 240*(100%/255) = 94%
 */
-#define RGB_TO_PWM_SCALE_RED	(-100.0/255.0)
-#define RGB_PWM_OFFSET_RED		100.0
-#define RGB_TO_PWM_SCALE_GREEN	(-100.0/255.0)
-#define RGB_PWM_OFFSET_GREEN	100.0
-#define RGB_TO_PWM_SCALE_BLUE	(-100.0/255.0)
-#define RGB_PWM_OFFSET_BLUE		100.0
+#define RGB_TO_PWM_SCALE_RED	(100.0/255.0)//(-100.0/255.0)
+#define RGB_PWM_OFFSET_RED		0//100.0
+#define RGB_TO_PWM_SCALE_GREEN	(100.0/255.0)//(-100.0/255.0)
+#define RGB_PWM_OFFSET_GREEN	0//100.0
+#define RGB_TO_PWM_SCALE_BLUE	(100.0/255.0)//(-100.0/255.0)
+#define RGB_PWM_OFFSET_BLUE		0//100.0
 
 /*
  * RGB LED Count
@@ -170,6 +170,7 @@ void RGB_LED_PowerDown(int rgbnum);
 void RGB_LED_ExitShutdown(void);
 void RGB_LED_EnterShutdown(void);
 void RGB_LED_SetColor(int rgbnum, rgb_color_t * color);
+int RGB_LED_Round(float value);
 void RGB_LED_GetColor(int rgbnum, rgb_color_t * color);
 void RGB_LED_ErrorHandler(void);
 void RGB_LED_SetDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * colorConfig);

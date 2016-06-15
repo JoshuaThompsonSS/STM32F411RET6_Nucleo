@@ -865,8 +865,7 @@ void HAL_RCC_DisableCSS(void)
   *               
   * @retval SYSCLK frequency
   */
-__weak uint32_t HAL_RCC_GetSysClockFreq(void)
-{
+__weak uint32_t HAL_RCC_GetSysClockFreq(void){
   uint32_t pllm = 0U, pllvco = 0U, pllp = 0U;
   uint32_t sysclockfreq = 0U;
 

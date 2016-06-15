@@ -35,6 +35,7 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "functional_rgb_led.h"
+#include <math.h>
 #include "stdlib.h"
 #include "string.h"
 
@@ -43,14 +44,22 @@
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
+#define maxStr 100
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef TimHandle;
 TIM_OC_InitTypeDef PwmConfig;
 TIM_HandleTypeDef LEDTimHandle;
+GPIO_InitTypeDef  GPIO_InitStruct;
 
 UART_InitTypeDef UART_InitStructure;
 UART_HandleTypeDef UART_Handle;
+rgb_seq_type_t rgbLedOn = RGBSEQ_ON;
+rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
+char *msg = "Hello Nucleo Fun!\n\r";
+float upDur, downDur, holdDur;
+int modeNum;
+int seqNum = 0;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -59,7 +68,14 @@ UART_HandleTypeDef UART_Handle;
 
 
 /* Private function prototypes -----------------------------------------------*/
+int getNumStr(char * buffer, char * nums, int startIndex, int maxChars);
+int convertStrToMs(char * numStr, int powerCount);
 void SystemClock_Config(void);
+void InitRGBCmd(void);
+void CmdLine(void);
+void InitRedLed(void);
+void StartRedLed(void);
+void StopRedLed(void);
 
 /* USER CODE BEGIN PFP */
 
@@ -111,7 +127,7 @@ void initLED(void){
 	//enable GPIOA peripheral clock
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	//enable GPIOA pin 5 as output
-	GPIO_InitTypeDef  GPIO_InitStruct;
+
 	GPIO_InitStruct.Pin = GPIO_PIN_5;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -219,57 +235,159 @@ int main(void)
 
   /* Initialize PWM for Functional RGB LED*/
 
+  InitRGBCmd(); //init uart, rgb led driver and services
 
-  FUNCTIONAL_RGB_LED_StartService();
-  //rgb_seq_type_t rgbLedOn = RGBSEQ_ON;
-  //rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
-  Init_USART();
-  char *msg = "Hello Nucleo Fun!\n\r";
-  char *rxMsg = (char*)malloc(sizeof(char)*100);
-  int seqNum = 0;
-  FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CRITICAL);
   while (1)
   {
+	CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
 
-
-
-	  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 4, 0xFFFF);
-	  if(rxMsg[0]=='!'){
-		    seqNum = rxMsg[1]-'0';
-		    seqNum = seqNum*10 + (rxMsg[2]-'0'); //convert char number to actual number
-		    									//ex: '04' = 0*10 + 4 = 4
-		    									//ex: '14' = 1*10 + 4 = 14
-		    if(seqNum < RGB_SEQ_COUNT){
-		    	FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t) seqNum);
-		    	HAL_UART_Transmit(&UART_Handle, (uint8_t*)msg, strlen(msg), 0xFFFF);
-		    }
-	  }
-
-
-
-
-    }
+  }
 
 }
 
-//override printf primitive
-/**
-* @brief Function that printf uses to push characters to serial port
-* @param ch: ascii character
-* @retval character
-*/
-/*
-int putcharx(int ch)
-{
-uint8_t data_ch = ch;
-uint8_t * dataPtr = &data_ch;
-uint16_t Size = 1;
-uint32_t Timeout = 1000; //millisec?
-while (HAL_USART_GetState(&USART_Handle) == HAL_USART_STATE_RESET);
-HAL_USART_Transmit(&USART_Handle, dataPtr,Size, Timeout);
-return ch;
+//Testing: init only red rgb led
+void InitRedLed(void){
+	RGB_LED_InitConfigs(0);
+	RGB_LED_InitPWMConfig(&RgbLedConfigs[0].red);
 }
-*/
+
+void StartRedLed(void){
+	RGB_LED_StartLED(&RgbLedConfigs[0].red);
+}
+
+void StopRedLed(void){
+	RGB_LED_StopLED(&RgbLedConfigs[0].red);
+	RGB_LED_InitConfigs(0);
+	RGB_LED_DeInitPWMConfig(&RgbLedConfigs[0].red);
+}
+
+//Init rgb led seq and cmdline
+void InitRGBCmd(void){
+	FUNCTIONAL_RGB_LED_StartService();
+	 Init_USART();
+	 rgbHandle.enabled = true;
+	 FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CHARGING);
+}
+
+//cmdline loop
+void CmdLine(void){
+	char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
+	char *seqMsg = (char*)calloc(maxStr, sizeof(char));
+	int i = 0;
+		  HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 100, 0xFFFF);
+		  if(rxMsg[i]=='!'){
+			    i++;
+			    seqMsg[0] = rxMsg[i];
+			    seqNum = rxMsg[i]-'0';
+			    i++;
+			    seqMsg[1] = rxMsg[i];
+			    seqMsg[2] = '\0';
+			    seqNum = seqNum*10 + (rxMsg[i]-'0'); //convert char number to actual number
+			    									//ex: '04' = 0*10 + 4 = 4
+			    									//ex: '14' = 1*10 + 4 = 14
+			    int maxChars = 10;
+			    int available = 0;
+			    i++;
+			    int tries = 0;
+			    while(rxMsg[i] != '?'){
+			    	tries++;
+					if(rxMsg[i]=='u'){
+						char * nums = (char*)malloc(sizeof(char)*maxChars);
+						i++;
+						available = 1;
+						int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+						upDur = convertStrToMs(nums, pwCnt);
+						i += (pwCnt);
+						CrtclSeqUpDur = upDur/1000.0;
+						if(available){
+							HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+							available = 0;
+						}
+					}
+					else if(rxMsg[i]=='d'){
+						char * nums = (char*)malloc(sizeof(char)*maxChars);
+						i++;
+						available = 1;
+						int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+						downDur = convertStrToMs(nums, pwCnt);
+						i += (pwCnt);
+						CrtclSeqDwnDur = downDur/1000.0;
+						if(available){
+							HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+							available = 0;
+						}
+					}
+					else if(rxMsg[i]=='h'){
+						char * nums = (char*)malloc(sizeof(char)*maxChars);
+						i++;
+						available = 1;
+						int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+						holdDur = convertStrToMs(nums, pwCnt);
+						i += (pwCnt);
+						CrtclSeqHldDur = holdDur/1000.0;
+						if(available){
+							HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+							available = 0;
+						}
+					}
+					else if(rxMsg[i]=='m'){
+						char * nums = (char*)malloc(sizeof(char)*maxChars);
+						i++;
+						available = 1;
+						int pwCnt = getNumStr(rxMsg, nums, i, maxChars);
+						modeNum = convertStrToMs(nums, pwCnt);
+						i += (pwCnt);
+						if(modeNum ==1){
+							CrtclSeqMode = RGB_LIN_MODE;
+						}
+						else if(modeNum == 2){
+							CrtclSeqMode = RGB_EXP_MODE;
+						}
+						if(available){
+							HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+							available = 0;
+						}
+					}
+					if(tries>= 100){tries = 0; break;}
+			   }
+
+			    //rxMsg = (char*)calloc(maxStr, sizeof(char)); //reset
+			    if(seqNum < RGB_SEQ_COUNT){
+					FUNCTIONAL_RGB_LED_LoadSequence((rgb_seq_type_t) seqNum);
+					HAL_UART_Transmit(&UART_Handle, (uint8_t*)seqMsg, strlen(seqMsg), 0xFFFF);
+				}
+		  }
+}
+
+//get number string
+int getNumStr(char * buffer, char * nums, int startIndex, int maxChars){
+	int pwCnt = 0;
+		for(int j = startIndex, i = 0; j<(startIndex + maxChars); j++, i++){
+			if(buffer[j] >= '0' && buffer[j] <= '9'){
+				nums[i] = buffer[j];
+				pwCnt++;
+			}
+			else{
+				nums[i] = '\0';
+				break;
+			}
+		}
+		return pwCnt;
+}
+
+//convert chars to millisec num
+int convertStrToMs(char * numStr, int powerCount){
+	int total = 0;
+	int count = powerCount - 1;
+	if(count <= 0){return numStr[0] - '0';}
+
+	for(int i = 0; i< count; i++){
+		int num = numStr[i] - '0';
+		num = num * pow(10,count-i); //ex: if numStr = '50' then count = 2 - 1 = 1, 5*10^1 + 0*10^0 = 50
+		total += num;
+	}
+	return total;
+}
 
 
 /** System Clock Configuration

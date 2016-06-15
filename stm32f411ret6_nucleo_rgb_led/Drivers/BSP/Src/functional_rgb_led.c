@@ -31,17 +31,14 @@
  */
 #include "functional_rgb_led.h"
 
-
 /*
  ********  DEFINE CONSTANTS & DATA TYPE (GLOBAL VARIABLES) ********
  *///Common colors
 rgb_color_t RedColor = {RGB_SOLID_RED, 0, 0};
-rgb_color_t BlueColor = {0, 0, RGB_SOLID_GREEN};
-rgb_color_t GreenColor = {0, RGB_SOLID_BLUE, 0};
+rgb_color_t BlueColor = {0, 0, RGB_SOLID_BLUE};
+rgb_color_t GreenColor = {0, RGB_SOLID_GREEN, 0};
 rgb_color_t WhiteColor = {RGB_SOLID_RED, RGB_SOLID_GREEN, RGB_SOLID_BLUE};
 rgb_color_t BlackColor = {0, 0, 0};
-
-
 
 /*
  ********  FUNCTION DECLARATION & DEFINTION ********
@@ -60,7 +57,7 @@ void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType){
 		rgbHandle.sequence->enabled = false; //disable currently running seq
 		if(seqType < RGB_SEQ_COUNT && sequenceList[seqType]->valid){
 			rgbHandle.next_sequence = sequenceList[seqType];
-			rgbHandle.next_sequence->enabled = true;
+			//rgbHandle.next_sequence->enabled = true;
 		}
 		else{
 			FUNCTIONAL_RGB_LED_ErrorHandler();
@@ -102,6 +99,20 @@ void FUNCTIONAL_RGB_LED_ErrorHandler(void){
 	funcRgbStatus.error = true;
 }
 
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitCmdLine()
+** DESCRIPTION:
+** 				-Initialize cmd line testing variables and other stuff
+** NOTE:
+ *
+*********************************************************************************** */
+
+void FUNCTIONAL_RGB_LED_InitCmdLine(void){
+	CrtclSeqUpDur = 0.250;
+	CrtclSeqDwnDur = 0.250;
+	CrtclSeqHldDur = 0.500;
+	CrtclSeqMode = RGB_LIN_MODE;
+}
 
 /* ********************************************************************************
 ** FUNCTION NAME: FUNCTIONAL_RGB_LED_StartService()
@@ -111,14 +122,17 @@ void FUNCTIONAL_RGB_LED_ErrorHandler(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_StartService(void){
+	//Cmd line testing
+	FUNCTIONAL_RGB_LED_InitCmdLine();
 	//init rgb led driver handle (rgbHandle)
 	FUNCTIONAL_RGB_LED_InitHandle();
 	//init all the common functional rgb led sequences
 	FUNCTIONAL_RGB_LED_InitSequences();
 	//init driver
-	rgbHandle.init();
+	rgbHandle.enabled = true;
+	FUNCTIONAL_RGB_LED_Init();
 	//start driver
-	rgbHandle.start();
+	FUNCTIONAL_RGB_LED_Start();
 
 	//init timer interrupt
 	FUNCTIONAL_RGB_LED_InitInterruptTimer();
@@ -138,10 +152,11 @@ void FUNCTIONAL_RGB_LED_StartService(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_StopService(void){
 	//start driver
-	rgbHandle.stop();
+	rgbHandle.enabled = false;
+	FUNCTIONAL_RGB_LED_Stop();
 
 	//init driver
-	rgbHandle.de_init();
+	FUNCTIONAL_RGB_LED_DeInit();
 
 	if(rgbHandle.sequence != NULL){
 		rgbHandle.sequence->enabled = false;
@@ -154,7 +169,6 @@ void FUNCTIONAL_RGB_LED_StopService(void){
 	//de-init timer interrupt
 	FUNCTIONAL_RGB_LED_DeInitInterruptTimer();
 	funcRgbStatus.running = false;
-
 
 	return;
 }
@@ -328,11 +342,11 @@ void FUNCTIONAL_RGB_LED_InitOffSeq(rgb_led_sequence_t * sequence){
 
 
 	//step 2: exp ramp 500 ms to red (linear ramp for now, and use white color for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.500, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, RedColor, 0.500, RGB_LIN_MODE);
 
 
 	//step 3: hold 2 sec red
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 2.00);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, RedColor, 2.00);
 
 
 	//step 4: exp ramp 500 ms to black (linear ramp for now)
@@ -356,21 +370,22 @@ void FUNCTIONAL_RGB_LED_InitCriticalSeq(rgb_led_sequence_t * sequence){
 	//step 1: setpoint solid black (off)
 	FUNCTIONAL_RGB_LED_InitSetpointStep(&sequence->steps[0], false, 0, 1, BlackColor);
 
-
 	//step 2: exp ramp 250 ms to red (linear ramp for now, and use white color for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	//0.250
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, RedColor, CrtclSeqUpDur, CrtclSeqMode);
 	//TODO: change to red
 
 	//step 3: hold 500 millisec red
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, RedColor, CrtclSeqHldDur);
 	//TODO: change to red
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, 0.250, RGB_LIN_MODE);
+	//250 ms
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[3], false, 3, 4, BlackColor, CrtclSeqDwnDur, CrtclSeqMode); //blackcolor
 
 
 	//step 5: hold 500 ms black then stop
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, CrtclSeqHldDur); //0.500
 
 	//step 6: repeat steps 2 - 5 (1 - 4 using 0 index) - last step = true
 	FUNCTIONAL_RGB_LED_InitRepeatStep(&sequence->steps[5], true, 5, 1, 1);
@@ -442,11 +457,11 @@ void FUNCTIONAL_RGB_LED_InitResetSeq(rgb_led_sequence_t * sequence){
 
 
 	//step 2: exp ramp 250 ms to red (linear ramp for now, white for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, RedColor, 0.250, RGB_LIN_MODE);
 	//TODO: change to red
 
 	//step 3: hold 500 sec red (white for now)
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, RedColor, 0.500);
 
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
@@ -457,10 +472,10 @@ void FUNCTIONAL_RGB_LED_InitResetSeq(rgb_led_sequence_t * sequence){
 	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.500);
 
 	//step 6: exp ramp 250 ms to red (linear ramp for now, white for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[5], false, 5, 6, WhiteColor, 0.250, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[5], false, 5, 6, RedColor, 0.250, RGB_LIN_MODE);
 
 	//step 7: hold 4 sec sold red (white for now)
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[6], false, 6, 7, WhiteColor, 4.0);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[6], false, 6, 7, RedColor, 4.0);
 	//TODO: change to red
 
 	//step 8: exp ramp 250 ms to black
@@ -506,11 +521,11 @@ void FUNCTIONAL_RGB_LED_InitBTDiscoverableSeq(rgb_led_sequence_t * sequence){
 
 
 	//step 2: exp ramp 250 ms to blue (linear ramp for now, and use white color for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, BlueColor, 0.250, RGB_LIN_MODE);
 
 
 	//step 3: hold 500 ms sec blue (white for now)
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, BlueColor, 0.500);
 
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
@@ -537,11 +552,11 @@ void FUNCTIONAL_RGB_LED_InitBTPairingSeq(rgb_led_sequence_t * sequence){
 
 
 	//step 2: exp ramp 250 ms to blue (linear ramp for now, and use white color for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, BlueColor, 0.250, RGB_LIN_MODE);
 
 
 	//step 3: hold 500 ms sec blue (white for now)
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, BlueColor, 0.500);
 
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
@@ -568,11 +583,11 @@ void FUNCTIONAL_RGB_LED_InitBTConnectingSeq(rgb_led_sequence_t * sequence){
 
 
 	//step 2: exp ramp 250 ms to blue (linear ramp for now, and use white color for now)
-	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, WhiteColor, 0.250, RGB_LIN_MODE);
+	FUNCTIONAL_RGB_LED_InitRampStep(&sequence->steps[1], false, 1, 2, BlueColor, 0.250, RGB_LIN_MODE);
 
 
 	//step 3: hold 500 ms sec blue (white for now)
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, WhiteColor, 0.500);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[2], false, 2, 3, BlueColor, 0.500);
 
 
 	//step 4: exp ramp 250 ms to black (linear ramp for now)
@@ -700,7 +715,7 @@ void FUNCTIONAL_RGB_LED_InitFWUpgradeShoe2Seq(rgb_led_sequence_t * sequence){
 
 
 	//step 5: hold 1 sec black
-	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 1.0);
+	FUNCTIONAL_RGB_LED_InitHoldStep(&sequence->steps[4], false, 4, 5, BlackColor, 0.250);
 
 	//slow blink
 	//step 6: exp ramp 250 ms to white (linear ramp for now)
@@ -853,6 +868,34 @@ void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step, bool last, int crn
 
 }
 
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_GetColorScales()
+** DESCRIPTION:
+** 				- calculate slope for either linear, log or exponential ramp equation
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_GetColorScales(rgb_led_step_t * step){
+	switch(step->mode){
+	case RGB_LIN_MODE:
+		step->scales.red = (step->color_setpoint.red - step->color_offsets.red) / step->duration;
+		step->scales.green = (step->color_setpoint.green - step->color_offsets.green) / step->duration;
+		step->scales.blue = (step->color_setpoint.blue - step->color_offsets.blue) / step->duration;
+		break;
+	case RGB_EXP_MODE:
+		step->scales.red = (step->color_setpoint.red - step->color_offsets.red)  / (step->duration*step->duration * step->duration);
+		step->scales.green = (step->color_setpoint.green - step->color_offsets.green)  / (step->duration*step->duration *step->duration);
+		step->scales.blue = (step->color_setpoint.blue - step->color_offsets.blue)  / (step->duration*step->duration *step->duration);
+		break;
+	case RGB_LOG_MODE:
+		//nothing dev yet
+		break;
+	default:
+		break;
+	}
+	return;
+}
+
 //Step functions to create specific RGB LED sequences
 
 /* ********************************************************************************
@@ -866,18 +909,30 @@ void FUNCTIONAL_RGB_LED_InitRepeatStep(rgb_led_step_t * step, bool last, int crn
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
+
 	RGB_LED_GetColor(FUNC_RGB_LED_NUM, &step->color);
 	rgb_color_t dlta_clr;
-	FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
+
 	if(step->time <= 0){
 		//get the scale used to increment the led (just run this once)
-		step->scales.red = dlta_clr.red / step->duration;
-		step->scales.green = dlta_clr.green / step->duration;
-		step->scales.blue = dlta_clr.blue / step->duration;
+
+		step->color_offsets.red = step->color.red;
+		step->color_offsets.green = step->color.green;
+		step->color_offsets.blue = step->color.blue;
+		//get slopes for exp (just x^2 for now) or linear equations (y = mx + b)
+		FUNCTIONAL_RGB_LED_GetColorScales(step);
+
 	}
 	step->time += STEP_TIME_PER_CYCLE; //time for each step interrupt loop
+	//increment color and update rgb led driver pwm -- keep doing this until color setpoint reached
+	FUNCTIONAL_RGB_LED_GenStepRampOutput(step); //this will generate linear, exponential or log output based on step.mode attribute
+
+	FUNCTIONAL_RGB_LED_GetColorDiff(&step->color_setpoint, &step->color, &dlta_clr);
 	int color_diff = dlta_clr.red + dlta_clr.green + dlta_clr.blue;
-	if(color_diff < 0){color_diff = color_diff * (-1);} //abs value
+	if(color_diff < 0)
+	{
+		color_diff = color_diff * (-1);
+	} //abs value
 
 
 	if((color_diff <= MIN_COLOR_DIFF) && (step->time >= step->duration)){
@@ -885,10 +940,7 @@ void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 		step->time = 0;
 		return;
 	}
-	else{
-		//increment color and update rgb led driver pwm -- keep doing this until color setpoint reached
-		FUNCTIONAL_RGB_LED_GenStepRampOutput(step); //this will generate linear, exponential or log output based on step.mode attribute
-	}
+
 
 	return;
 }
@@ -985,9 +1037,12 @@ void FUNCTIONAL_RGB_LED_GenStepRampOutput(rgb_led_step_t * step){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SetLinearOutput(rgb_led_step_t * step){
-	step->color.red += STEP_TIME_PER_CYCLE * step->scales.red;
-	step->color.green += STEP_TIME_PER_CYCLE * step->scales.green;
-	step->color.blue += STEP_TIME_PER_CYCLE * step->scales.blue;
+
+	float t = step->time;
+	//step->color.red += (STEP_TIME_PER_CYCLE * redscale);
+	step->color.red = (t * step->scales.red) + step->color_offsets.red;
+	step->color.green = (t * step->scales.green) + step->color_offsets.green;
+	step->color.blue = (t * step->scales.blue) + step->color_offsets.blue;
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
 
@@ -1000,6 +1055,12 @@ void FUNCTIONAL_RGB_LED_SetLinearOutput(rgb_led_step_t * step){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step){
 	//TODO: generate exponential output
+	//output = scale(x^3) + offset
+	float t = step->time;
+	step->color.red = step->scales.red*(t*t*t) + step->color_offsets.red;
+	step->color.green = step->scales.green*(t*t*t) + step->color_offsets.green;
+	step->color.blue = step->scales.blue*(t*t*t) + step->color_offsets.blue;
+
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
 
@@ -1012,6 +1073,9 @@ void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SetLogOutput(rgb_led_step_t * step){
 	//TODO: generate logarithmic output
+	//if time/duration >= 50% then use line equation 2
+	//else scale with normal linear output
+	//output = c*log(scale*(time + 1)) + offset
 	FUNCTIONAL_RGB_LED_SetColor(&step->color);
 }
 
@@ -1088,10 +1152,12 @@ void FUNCTIONAL_RGB_LED_StopInterruptTimer(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_SequenceHandler(void){
+	if(!rgbHandle.enabled){return;}
 	if(rgbHandle.next_sequence != NULL && rgbHandle.sequence != NULL && !rgbHandle.sequence->enabled){
 
 		if(rgbHandle.next_sequence->seq_type < RGB_SEQ_COUNT){
 			rgbHandle.sequence = rgbHandle.next_sequence;
+			rgbHandle.sequence->enabled = true;
 			rgbHandle.next_sequence = NULL;
 			sequenceInitFuncList[rgbHandle.sequence->seq_type](rgbHandle.sequence);
 		}
@@ -1121,21 +1187,25 @@ void FUNCTIONAL_RGB_LED_SequenceHandler(void){
 	  }
 	return;
 }
-
+//TIM4_IRQHandler
 void TIM4_IRQHandler(void){
 	HAL_TIM_IRQHandler(&RGBInterruptTimHandle);
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	//run rgb led sequence routine
-	FUNCTIONAL_RGB_LED_SequenceHandler();
+	if(htim->Instance == FUNC_RGB_INT_TIM_REG){
+		FUNCTIONAL_RGB_LED_SequenceHandler();
+	}
 }
 
 //called by Timer Initialization
 void  HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
-	RGB_LED_EnTimClk(htim->Instance);
-	HAL_NVIC_SetPriority((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ), 0x0F, 0x00);
-	HAL_NVIC_EnableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
+	if(htim->Instance == FUNC_RGB_INT_TIM_REG){
+		RGB_LED_EnTimClk(htim->Instance);
+		HAL_NVIC_SetPriority((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ), 0x0F, 0x00);
+		HAL_NVIC_EnableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
+	}
 }
 
 //called by Timer DeInitialization

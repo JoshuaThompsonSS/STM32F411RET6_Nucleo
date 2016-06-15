@@ -198,7 +198,7 @@ void RGB_LED_InitPWMConfig(rgb_led_color_conf_t * colorConfig){
 		RGB_LED_ErrorHandler();
 	}
 
-	colorConfig->pwmConfig.OCMode = TIM_OCMODE_PWM2; //PWM1
+	colorConfig->pwmConfig.OCMode = TIM_OCMODE_PWM1; //PWM2
 	colorConfig->pwmConfig.OCFastMode = TIM_OCFAST_DISABLE;
 	colorConfig->pwmConfig.OCPolarity = TIM_OCPOLARITY_HIGH; //HIGH
 	colorConfig->pwmConfig.Pulse = RGB_PWMDUTY_DFLT * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
@@ -433,18 +433,40 @@ void RGB_LED_GetColor(int rgbnum, rgb_color_t * color)
 	//RED - get red color rgb value 0 - 255
 	float duty_cycle=0.0;
 	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].red);
-	color->red = (duty_cycle - RGB_PWM_OFFSET_RED) / RGB_TO_PWM_SCALE_RED;
+	color->red = RGB_LED_Round((duty_cycle - RGB_PWM_OFFSET_RED) / RGB_TO_PWM_SCALE_RED);
 
 	//GREEN
 	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].green);
-	color->green = (duty_cycle - RGB_PWM_OFFSET_GREEN) / RGB_TO_PWM_SCALE_GREEN;
+	color->green = RGB_LED_Round((duty_cycle - RGB_PWM_OFFSET_GREEN) / RGB_TO_PWM_SCALE_GREEN);
 
 	//BLUE
 	duty_cycle = RGB_LED_GetDutyCycle(&RgbLedConfigs[rgbnum].blue);
-	color->blue = (duty_cycle - RGB_PWM_OFFSET_BLUE) / RGB_TO_PWM_SCALE_BLUE;
+	color->blue = RGB_LED_Round((duty_cycle - RGB_PWM_OFFSET_BLUE) / RGB_TO_PWM_SCALE_BLUE);
 
 
   return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: RGB_LED_Round()
+** DESCRIPTION: Round number up / down (this is to save as much of the rgb led value after converting from float to int)
+** NOTE:		example: RGB_LED_Round(1.5) = 2
+ *
+*********************************************************************************** */
+int RGB_LED_Round(float value){
+	float remainder = value - (int)value;
+	//ex: if value = 1.9
+	//    remainder = 1.9 - (int)1.9 = 1.9 - 1 = 0.9
+	//    0.9 is > 0.5 so value = 1.9 + 0.5 = 2.3
+	//   returns int(2.3) = 2
+	if(remainder >= 0.5){
+		value = value + 0.5;
+		return value;
+	}
+	else{
+		//ex: if value = 1.4 then just return int(1.4) = 1
+		return value;
+	}
 }
 
 
@@ -465,7 +487,7 @@ void RGB_LED_SetDutyCycle(float duty_cycle_percent, rgb_led_color_conf_t * color
 	uint32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT;
 	//TODO: validate the duty cycle is a unsigned int value between 0 and 100
 	//update the duty cycle value in the pwm structure (this does not update the pwm, it's just so record our new duty cycle value)
-	colorConfig->pwmConfig.Pulse = duty_cycle_percent * timer_period / 100;  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
+	colorConfig->pwmConfig.Pulse = RGB_LED_Round(duty_cycle_percent * timer_period / 100.0);  //Pulse(Cycles) = Duty_Cycle * Period(Cycles) / 100 ex: 50% * 16000 / 100 = 8000
 
 	//Now update the duty cycle by updating the pulse value, the timer will update the duty cycle after it completes its most recent period capture compare
 	//TIMx->CCR1 = OC_Config->Pulse
@@ -515,7 +537,8 @@ float RGB_LED_GetDutyCycle(rgb_led_color_conf_t * colorConfig){
 		duty_cycle_pulses = colorConfig->pwmConfig.Pulse;;
 	}
 
-	duty_cycle_percent = duty_cycle_pulses * 100 / timer_period;
+	duty_cycle_percent = duty_cycle_pulses * 100.0;
+	duty_cycle_percent = duty_cycle_percent / timer_period;
 	return duty_cycle_percent;
 
 	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?

@@ -13,18 +13,18 @@
 */
 
 //RGB Colors
-#define RGB_SOLID_RED			255
+#define RGB_SOLID_RED			255 //255
 #define RGB_SOLID_GREEN			255
 #define RGB_SOLID_BLUE			255
-#define MIN_COLOR_DIFF			10
+#define MIN_COLOR_DIFF			22//10
 
 #define MAX_RGB_STEPS			10 //max steps in an rgb led sequence (ex: ramp, hold, repeat...etc)
 
 //Service / Timer
 //TIM REG Used for Interrupt (this is what runs the rgb led sequence)
-#define FUNC_RGB_INT_TIM_REG	TIM4 //this must match the TIMx_IRQHandler definition in the function_rgb_led.c file
-#define FUNC_RGB_INT_TIM_IRQ	TIM4_IRQn
-#define STEP_TIME_PER_CYCLE		0.02 //(1.0/RGB_PWMFREQ_DFLT) //sec per timer interrupt -- TODO: need to define this appropriately
+#define FUNC_RGB_INT_TIM_REG	TIM4 //TIM4//this must match the TIMx_IRQHandler definition in the function_rgb_led.c file
+#define FUNC_RGB_INT_TIM_IRQ	TIM4_IRQn//TIM1_UP_TIM10_IRQn//TIM4_IRQn
+#define STEP_TIME_PER_CYCLE		(1.0/RGB_PWMFREQ_DFLT) //sec per timer interrupt -- TODO: need to define this appropriately
 
 //Common sequence colors
 #define BLACK_CLR				0
@@ -70,7 +70,7 @@
  */
 
 //rgb function modes (logarithmic, exponential, linear)
-typedef enum rgb_modes_t {RGB_NO_MODE, RGB_LIN_MODE, RGB_LOG_MODE, RGB_EXP_MODE} rgb_modes_t;
+typedef enum rgb_modes_t {RGB_NO_MODE, RGB_LIN_MODE, RGB_EXP_MODE, RGB_LOG_MODE} rgb_modes_t;
 typedef enum rgb_step_type_t {RAMP_STEP=RAMP_STEP_TYPE, HOLD_STEP=HOLD_STEP_TYPE, SETPOINT_STEP=SETPOINT_STEP_TYPE, REPEAT_STEP=REPEAT_STEP_TYPE} rgb_step_type_t;
 typedef enum rgb_state_colors_t {BLACK=BLACK_CLR, WHITE=WHITE_CLR, RED=RED_CLR, BLUE=BLUE_CLR, GREEN=GREEN_CLR} rgb_state_colors_t;
 typedef enum rgb_seq_type_t {RGBSEQ_ON=ON_SEQ_TYPE, RGBSEQ_OFF=OFF_SEQ_TYPE, RGBSEQ_CRITICAL=CRTCL_SEQ_TYPE, RGBSEQ_CHARGING=CHRNG_SEQ_TYPE, RGBSEQ_CHARGED=CHRGD_SEQ_TYPE,
@@ -111,6 +111,7 @@ typedef struct rgb_led_step_t {
 	int next_step_num;
 	bool complete;
 	color_scales_t scales; //color diff / duration
+	rgb_color_t color_offsets; //use to calc new color: y = mx + b (b = offset) and m = color scale and x = time
 	rgb_modes_t mode; //log, exponential, linear...etc
 	void (*func_handler)(); //ptr to function that will run the step (for ex: FUNCTIONAL_RGB_LED_Ramp)
 	rgb_led_sequence_t * parent_seq;
@@ -131,6 +132,7 @@ typedef struct rgb_led_sequence_t {
 
 //rgb led handle
 typedef struct rgb_led_handle_t {
+	bool enabled;
 	void (*set_color)();
 	void (*get_color)();
 	void (*get_color_diff)();
@@ -148,6 +150,10 @@ rgb_led_handle_t rgbHandle;
 
 //running status
 func_rgb_led_status_t funcRgbStatus;
+
+//Cmd line testing
+float CrtclSeqUpDur, CrtclSeqDwnDur, CrtclSeqHldDur;
+rgb_modes_t CrtclSeqMode;
 
 
 /*
@@ -185,6 +191,7 @@ TIM_HandleTypeDef RGBInterruptTimHandle;
 /*
  * --------Function Declarations
 */
+void FUNCTIONAL_RGB_LED_InitCmdLine(void);
 void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType);
 bool FUNCTIONAL_RGB_LED_isRunning(void);
 void FUNCTIONAL_RGB_LED_ErrorHandler(void);

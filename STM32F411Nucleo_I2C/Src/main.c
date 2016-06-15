@@ -32,11 +32,13 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-
+#include <stdlib.h>
+#include <string.h>
 /* USER CODE BEGIN Includes */
 
 
 /* USER CODE END Includes */
+
 
 #define WHO_AM_I_MPU6050 0x75 // Should return 0x68
 
@@ -49,6 +51,7 @@
 I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -57,9 +60,11 @@ UART_HandleTypeDef huart1;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void SystemClock_ConfigTest(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 
 //Initialize the board debug led as output
 void initLED(void){
@@ -85,6 +90,7 @@ void toggleLED(void){
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 }
 
+//read single byte via i2c
 uint8_t readByte(uint8_t address, uint8_t subAddress)
 {
 uint8_t data[1]; // `data` will store the register data
@@ -96,6 +102,31 @@ HAL_I2C_Master_Transmit(&hi2c1, address, data_write, 1, 0xFFFF);
 HAL_I2C_Master_Receive(&hi2c1, address, data, 1, 0xFFFF);
 
 return data[0];
+}
+
+//read several bytes via i2c
+void readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest)
+{
+uint8_t data[14];
+uint8_t data_write[1];
+data_write[0] = subAddress;
+//i2c.write(address, data_write, 1, 1); // no stop
+//i2c.read(address, data, count, 0);
+HAL_I2C_Master_Transmit(&hi2c1, address, data_write, 1, 0xFFFF);
+HAL_I2C_Master_Receive(&hi2c1, address, data, count, 0xFFFF);
+for(int ii = 0; ii < count; ii++) {
+ dest[ii] = data[ii];
+}
+}
+//write single byte via i2c
+
+void writeByte(uint8_t address, uint8_t subAddress, uint8_t data)
+{
+uint8_t data_write[2];
+data_write[0] = subAddress;
+data_write[1] = data;
+//i2c.write(address, data_write, 2, 0);
+HAL_I2C_Master_Transmit(&hi2c1, address, data_write, 2, 0xFFFF);
 }
 
 /* USER CODE BEGIN PFP */
@@ -125,7 +156,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
 
   /* USER CODE BEGIN 2 */
 
@@ -134,10 +165,14 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   initLED();
-  MX_I2C1_Init();
+  //MX_I2C1_Init();
   while (1)
   {
   /* USER CODE END WHILE */
+	  char * nums = (char*)malloc(sizeof(char)*10);
+	  nums[0] = 'h'; nums[1]='e'; nums[2]='\0';
+	  HAL_UART_Transmit(&huart2, (uint8_t*)nums, strlen(nums), 0xFFFF);
+	  wait_sec(1);
 	  char data = readByte(MPU6050_ADDRESS, WHO_AM_I_MPU6050);
 	  if(data == 0x68){
 		  wait_sec(1);
@@ -156,6 +191,38 @@ int main(void)
 /** System Clock Configuration
 */
 void SystemClock_Config(void)
+{
+
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+
+  __HAL_RCC_PWR_CLK_ENABLE();
+
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = 16;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0);
+
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+
+  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+
+  /* SysTick_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
+
+void SystemClock_ConfigTest(void)
 {
 
   RCC_OscInitTypeDef RCC_OscInitStruct;
@@ -210,11 +277,27 @@ void MX_I2C1_Init(void)
 }
 
 /* USART1 init function */
+void MX_USART2_UART_Init(void)
+{
+
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  //huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  HAL_UART_Init(&huart2);
+
+}
+
+/* USART1 init function */
 void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -225,13 +308,13 @@ void MX_USART1_UART_Init(void)
 
 }
 
-/** Configure pins as 
-        * Analog 
-        * Input 
+/** Configure pins as
+        * Analog
+        * Input
         * Output
         * EVENT_OUT
         * EXTI
-        * Free pins are configured automatically as Analog (this feature is enabled through 
+        * Free pins are configured automatically as Analog (this feature is enabled through
         * the Code Generation settings)
      PA2   ------> USART2_TX
      PA3   ------> USART2_RX
@@ -254,23 +337,23 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC0 PC1 PC2 PC3 
-                           PC4 PC5 PC6 PC7 
-                           PC8 PC9 PC10 PC11 
+  /*Configure GPIO pins : PC0 PC1 PC2 PC3
+                           PC4 PC5 PC6 PC7
+                           PC8 PC9 PC10 PC11
                            PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3 
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7 
-                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
+                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11
                           |GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA4 PA6 
-                           PA7 PA8 PA11 PA12 
+  /*Configure GPIO pins : PA0 PA1 PA4 PA6
+                           PA7 PA8 PA11 PA12
                            PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_6 
-                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_11|GPIO_PIN_12 
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_6
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_11|GPIO_PIN_12
                           |GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -291,11 +374,11 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 PB10 
-                           PB12 PB13 PB14 PB15 
+  /*Configure GPIO pins : PB0 PB1 PB2 PB10
+                           PB12 PB13 PB14 PB15
                            PB4 PB5 PB8 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10 
-                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15 
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
+                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15
                           |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -338,10 +421,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

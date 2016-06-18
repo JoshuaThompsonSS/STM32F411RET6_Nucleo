@@ -33,6 +33,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
+#include "bq27542.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -107,7 +108,10 @@ int main(void)
   initLED();
   while (1)
   {
-
+	  // Read Temperature (units = 0.1K)
+	    BQ27542_read(bq27542CMD_TEMP_LSB, 2);
+	    temperature = transBytes2UnsignedInt(RxData[1], RxData[0]);
+	    wait_sec(2);
 
 
 

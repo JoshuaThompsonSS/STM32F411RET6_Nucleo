@@ -69,7 +69,7 @@
 
 
 #define ATRATE_MA            -100           // USER CONFIG: AtRate setting (mA)
-#define I2CSLAVEADDR         0x55           // 7-bit slave address
+#define I2CSLAVEADDR         0xAA           // 0xAA = 0x55 << 1 = 7-bit slave address
 #define BUFFERSIZE             32           // # of bytes for Tx & Rx buffers
 /*
 extern UINT8 Message[RANDMESGNUMBYTES]; // random message sent to the bq device

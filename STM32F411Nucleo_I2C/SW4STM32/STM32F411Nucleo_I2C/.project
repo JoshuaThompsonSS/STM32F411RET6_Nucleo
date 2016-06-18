@@ -26,9 +26,24 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>.DS_Store</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/BSP/.DS_Store</locationURI>
+		</link>
+		<link>
+			<name>Drivers/.DS_Store</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/BSP/Src/.DS_Store</locationURI>
+		</link>
+		<link>
 			<name>Application/SW4STM32/startup_stm32f411xe.s</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f411xe.s</locationURI>
+		</link>
+		<link>
+			<name>Application/User/i2c.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/i2c.c</locationURI>
 		</link>
 		<link>
 			<name>Application/User/main.c</name>
@@ -44,6 +59,11 @@
 			<name>Application/User/stm32f4xx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f4xx_it.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/BSP/bq27542.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/BSP/Src/bq27542.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/CMSIS/system_stm32f4xx.c</name>

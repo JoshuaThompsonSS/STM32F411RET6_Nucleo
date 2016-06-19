@@ -109,10 +109,8 @@ int main(void)
   while (1)
   {
 	  // Read Temperature (units = 0.1K)
-	    BQ27542_read(bq27542CMD_TEMP_LSB, 2);
-	    temperature = transBytes2UnsignedInt(RxData[1], RxData[0]);
-	    wait_sec(2);
-
+	    uint16_t temp = BQ27542_getTemperature();
+	    uint16_t devType = BQ27542_getDeviceType();
 
 
   }

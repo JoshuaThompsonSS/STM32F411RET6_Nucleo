@@ -44,4 +44,22 @@ void BQ27542_error(void)
 
 }
 
+uint16_t BQ27542_getTemperature(void){
+	// Read Temperature (units = 0.1K)
+	BQ27542_read(bq27542CMD_TEMP_LSB, 2);
+	temperature = transBytes2UnsignedInt(RxData[1], RxData[0]);
+	return temperature;
+}
+
+uint16_t BQ27542_getDeviceType(void){
+	// Read Device Type
+	TxData[0] = bq27542CMD_CNTL_LSB;
+	TxData[1] = bq27542CMD_CNTL_DTYPE_LSB;
+	TxData[2] = bq27542CMD_CNTL_DTYPE_MSB;
+	BQ27542_blockWrite(TxData, 3);
+	//wait_sec(0.01);
+	BQ27542_read(bq27542CMD_CNTL_LSB, 2);
+	uint16_t devType = transBytes2UnsignedInt(RxData[1], RxData[0]);
+	return devType;
+}
 

@@ -32,37 +32,25 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+#include "i2c.h"
+#include "bq27542.h"
 #include <stdlib.h>
 #include <string.h>
-/* USER CODE BEGIN Includes */
 
 
-/* USER CODE END Includes */
+#define WHO_AM_I_MPU6050 			0x75U // Should return 0x68
+#define MPU6050_ADDRESS 			0x68U<<1  // Device address when ADO = 0
 
-
-#define WHO_AM_I_MPU6050 0x75 // Should return 0x68
-
-// Using the GY-521 breakout board, I set ADO to 0 by grounding through a 4k7 resistor
-// Seven-bit device address is 110100 for ADO = 0 and 110101 for ADO = 1
-
-#define MPU6050_ADDRESS 0x68<<1  // Device address when ADO = 0
-
-/* Private variables ---------------------------------------------------------*/
-I2C_HandleTypeDef hi2c1;
+/* Variables ---------------------------------------------------------*/
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
-/* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
 
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
+/* Function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void SystemClock_ConfigTest(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 
@@ -90,53 +78,6 @@ void toggleLED(void){
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 }
 
-//read single byte via i2c
-uint8_t readByte(uint8_t address, uint8_t subAddress)
-{
-uint8_t data[1]; // `data` will store the register data
-uint8_t data_write[1];
-data_write[0] = subAddress;
-//i2c.write(address, data_write, 1, 1); // no stop
-//i2c.read(address, data, 1, 0);
-HAL_I2C_Master_Transmit(&hi2c1, address, data_write, 1, 0xFFFF);
-HAL_I2C_Master_Receive(&hi2c1, address, data, 1, 0xFFFF);
-
-return data[0];
-}
-
-//read several bytes via i2c
-void readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest)
-{
-uint8_t data[14];
-uint8_t data_write[1];
-data_write[0] = subAddress;
-//i2c.write(address, data_write, 1, 1); // no stop
-//i2c.read(address, data, count, 0);
-HAL_I2C_Master_Transmit(&hi2c1, address, data_write, 1, 0xFFFF);
-HAL_I2C_Master_Receive(&hi2c1, address, data, count, 0xFFFF);
-for(int ii = 0; ii < count; ii++) {
- dest[ii] = data[ii];
-}
-}
-//write single byte via i2c
-
-void writeByte(uint8_t address, uint8_t subAddress, uint8_t data)
-{
-uint8_t data_write[2];
-data_write[0] = subAddress;
-data_write[1] = data;
-//i2c.write(address, data_write, 2, 0);
-HAL_I2C_Master_Transmit(&hi2c1, address, data_write, 2, 0xFFFF);
-}
-
-/* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
-
-/* USER CODE END PFP */
-
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 
 int main(void)
 {
@@ -165,26 +106,14 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   initLED();
-  //MX_I2C1_Init();
   while (1)
   {
-  /* USER CODE END WHILE */
-	  char * nums = (char*)malloc(sizeof(char)*10);
-	  nums[0] = 'h'; nums[1]='e'; nums[2]='\0';
-	  HAL_UART_Transmit(&huart2, (uint8_t*)nums, strlen(nums), 0xFFFF);
-	  wait_sec(1);
-	  char data = readByte(MPU6050_ADDRESS, WHO_AM_I_MPU6050);
-	  if(data == 0x68){
-		  wait_sec(1);
-		  toggleLED();
-	  }
-	  else{
-		  wait_sec(1);
-	  }
-  /* USER CODE BEGIN 3 */
+	  // Read Temperature (units = 0.1K)
+	    uint16_t temp = BQ27542_getTemperature();
+	    uint16_t devType = BQ27542_getDeviceType();
+
 
   }
-  /* USER CODE END 3 */
 
 }
 
@@ -259,22 +188,6 @@ void SystemClock_ConfigTest(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* I2C1 init function */
-void MX_I2C1_Init(void)
-{
-
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  HAL_I2C_Init(&hi2c1);
-
-}
 
 /* USART1 init function */
 void MX_USART2_UART_Init(void)

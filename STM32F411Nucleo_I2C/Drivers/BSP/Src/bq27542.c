@@ -63,3 +63,199 @@ uint16_t BQ27542_getDeviceType(void){
 	return devType;
 }
 
+uint16_t BQ27542_getUnfilteredSOC(void){
+	//units: %
+	int soc;
+
+	//TODO: Josh - develop code
+	return soc;
+}
+
+uint16_t BQ27542_getVoltage(void){
+	//units: mV
+	int mV;
+
+	//TODO: Josh - develop code
+	return mV;
+}
+
+uint16_t BQ27542_getNomAvailableCapacity(void){
+	//units: mAh
+	int nomCap;
+
+	//TODO: Josh - develop code
+	return nomCap;
+}
+
+uint16_t BQ27542_getFullAvailableCapacity(void){
+	//units: mAh
+	int fullCap;
+	//TODO: Josh - develop code
+
+	return fullCap;
+}
+
+uint16_t BQ27542_getRemainingCapacity(void){
+	//units: mAh
+	int remCap;
+
+	//TODO: Josh - develop code
+
+	return remCap;
+}
+
+uint16_t BQ27542_getFullChargeCapacity(void){
+	//units: mAh
+	int fullChrgCap;
+
+	//TODO: Josh - develop code
+
+	return fullChrgCap;
+}
+
+uint16_t BQ27542_getAverageCurrent(void){
+	//units: mA
+	int aveCurrent;
+
+	//TODO: Josh - develop code
+
+	return aveCurrent;
+}
+
+uint16_t BQ27542_getTimeToEmpty(void){
+	//units: min
+	int timeToEmpty;
+
+	//TODO: Josh - develop code
+	return timeToEmpty;
+}
+
+uint16_t BQ27542_getFullChargeCapacityFiltered(void){
+	//units: mAh
+	int fullChrgCapFilt;
+
+	//TODO: Josh - develop code
+
+	return fullChrgCapFilt;
+}
+
+uint16_t BQ27542_getFullChargeCapacityUnfiltered(void){
+	//units: mAh
+	int fullChrgCapUnfilt;
+
+	//TODO: Josh - develop code
+	return fullChrgCapUnfilt;
+}
+
+uint16_t BQ27542_getImax(void){
+	//units: mAh
+	int imax;
+
+	//TODO: Josh - develop code
+	return imax;
+}
+
+uint16_t BQ27542_getRemainingCapacityUnfiltered(void){
+	//units: mAh
+	int remCapUnfilt;
+
+	//TODO: Josh - develop code
+
+	return remCapUnfilt;
+}
+
+uint16_t BQ27542_getRemainingCapacityFiltered(void){
+	//units: mAh
+	int remCapFilt;
+
+	//TODO: Josh - develop code
+
+	return remCapFilt;
+}
+
+uint16_t BQ27542_setBTPSOC1(int mAh){
+	//units: mAh
+	int btpsoc1;
+
+	//TODO: Josh - develop code
+	return btpsoc1;
+}
+
+uint16_t BQ27542_clearBTPSOC1(void){
+	//units: mAh
+	int btpsoc1;
+
+	//TODO: Josh - develop  code
+	return btpsoc1;
+}
+uint16_t BQ27542_getInternalTemperature(void){
+	//units: 0.1 deg K
+	int intTemp;
+	//TODO: Josh - develop  code
+	return intTemp;
+}
+
+uint16_t BQ27542_getCycleCount(void){
+	//units: count
+	int cycleCnt;
+	//TODO: Josh - develop  code
+
+	return cycleCnt;
+}
+
+uint16_t BQ27542_getStateOfCharge(void){
+	//units: %
+	int soc;
+	//TODO: Josh - develop  code
+
+	return soc;
+}
+
+uint16_t BQ27542_getStateOfHealth(void){
+	//units % / num
+	int soh;
+
+	//TODO: Josh - develop  code
+	return soh;
+}
+
+uint16_t BQ27542_getChargingVoltage(void){
+	//units: mV
+	int chrgVolt;
+	//TODO: Josh - develop  code
+
+	return chrgVolt;
+}
+
+uint16_t BQ27542_getChargingCurrent(void){
+	//units: mA
+	int chrgCurrent;
+
+	//TODO: Josh - develop  code
+	return chrgCurrent;
+}
+
+uint16_t BQ27542_getPassedCharge(void){
+	//units: mAh
+	int passedChrg;
+	//TODO: Josh - develop  code
+
+	return passedChrg;
+}
+
+uint16_t BQ27542_getDOD0(void){
+	//units: hex
+	int dod0;
+	//TODO: Josh - develop  code
+
+	return dod0;
+}
+
+uint16_t BQ27542_getSelfDischargeCurrent(void){
+	//units: mA
+	int disCurrent;
+
+	//TODO: Josh - develop  code
+	return disCurrent;
+}
+

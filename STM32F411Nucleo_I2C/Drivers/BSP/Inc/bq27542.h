@@ -1,8 +1,6 @@
 /* File: "bq27542.h"
  * Desc: Header file for TI Fuel Gauge I2C Commands and Functions
- *
- *
- */
+*/
 
 //Includes
 #include "stm32f4xx_hal.h"
@@ -99,8 +97,36 @@ void BQ27542_cmdWrite(unsigned char cmd, unsigned char data);
 void BQ27542_blockWrite(unsigned char *buffer, unsigned int length);
 void BQ27542_error(void);
 
-uint16_t BQ27542_getTemperature(void);
-uint16_t BQ27542_getDeviceType(void);
+/*
+ * Function below based on BQ27542 Datasheet standard data commands (http://www.ti.com/lit/ds/symlink/bq27542-g1.pdf)
+ */
+
+uint16_t BQ27542_getDeviceType(void); //0x0542 is the expected result
+uint16_t BQ27542_getTemperature(void); //0.1 deg K
+uint16_t BQ27542_getUnfilteredSOC(void); //%
+uint16_t BQ27542_getVoltage(void); //mV
+uint16_t BQ27542_getNomAvailableCapacity(void); //mAh
+uint16_t BQ27542_getFullAvailableCapacity(void); //mAh
+uint16_t BQ27542_getRemainingCapacity(void); //mAh
+uint16_t BQ27542_getFullChargeCapacity(void); //mAh
+uint16_t BQ27542_getAverageCurrent(void); //mA
+uint16_t BQ27542_getTimeToEmpty(void); //min
+uint16_t BQ27542_getFullChargeCapacityFiltered(void); //mAh
+uint16_t BQ27542_getFullChargeCapacityUnfiltered(void); //mAh
+uint16_t BQ27542_getImax(void); //mAh
+uint16_t BQ27542_getRemainingCapacityUnfiltered(void); //mAh
+uint16_t BQ27542_getRemainingCapacityFiltered(void); //mAh
+uint16_t BQ27542_setBTPSOC1(int mAh); //mAh
+uint16_t BQ27542_clearBTPSOC1(void); //mAh
+uint16_t BQ27542_getInternalTemperature(void); // 0.1 deg K
+uint16_t BQ27542_getCycleCount(void); //count
+uint16_t BQ27542_getStateOfCharge(void); //%
+uint16_t BQ27542_getStateOfHealth(void); //% / num
+uint16_t BQ27542_getChargingVoltage(void); //mV
+uint16_t BQ27542_getChargingCurrent(void); //mA
+uint16_t BQ27542_getPassedCharge(void); //mAh
+uint16_t BQ27542_getDOD0(void); //hex
+uint16_t BQ27542_getSelfDischargeCurrent(void); //mA
 
 
 

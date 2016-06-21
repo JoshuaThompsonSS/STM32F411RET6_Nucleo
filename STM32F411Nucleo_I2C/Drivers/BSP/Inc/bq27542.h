@@ -7,7 +7,7 @@
 #include "i2c.h"
 #include <stdlib.h>
 
-//I2C Register Constants
+//I2C Register Constants - See Table 6. Standard Commands in BQ27542 Datasheet
 //Control Command
 #define bq27542CMD_CNTL_LSB  	0x00
 #define bq27542CMD_CNTL_MSB  	0x01
@@ -20,50 +20,62 @@
 #define bq27542CMD_CNTL_HWVER_LSB	0x03
 //End Control subcommands
 
-#define bq27542CMD_AR_LSB    	0x02
+#define bq27542CMD_AR_LSB    	0x02 //AtRate
 #define bq27542CMD_AR_MSB   	0x03
-#define bq27542CMD_ARTTE_LSB 	0x04
-#define bq27542CMD_ARTTE_MSB 	0x05
+#define bq27542CMD_USOC_LSB 	0x04 //Unfiltered SOC
+#define bq27542CMD_USOC_MSB 	0x05
 #define bq27542CMD_TEMP_LSB  	0x06
 #define bq27542CMD_TEMP_MSB 	0x07
 #define bq27542CMD_VOLT_LSB  	0x08
 #define bq27542CMD_VOLT_MSB  	0x09
 #define bq27542CMD_FLAGS_LSB 	0x0A
 #define bq27542CMD_FLAGS_MSB 	0x0B
-#define bq27542CMD_NAC_LSB   	0x0C
+#define bq27542CMD_NAC_LSB   	0x0C //Nom Available Capacity
 #define bq27542CMD_NAC_MSB   	0x0D
-#define bq27542CMD_FAC_LSB   	0x0E
+#define bq27542CMD_FAC_LSB   	0x0E //Full Available Capacity
 #define bq27542CMD_FAC_MSB   	0x0F
-#define bq27542CMD_RM_LSB    	0x10
-#define bq27542CMD_RM_MSB    	0x11
-#define bq27542CMD_FCC_LSB   	0x12
+#define bq27542CMD_RMC_LSB    	0x10 //Remaining capacity
+#define bq27542CMD_RMC_MSB    	0x11
+#define bq27542CMD_FCC_LSB   	0x12 //Full charge capacity
 #define bq27542CMD_FCC_MSB   	0x13
-#define bq27542CMD_AI_LSB    	0x14
+#define bq27542CMD_AI_LSB    	0x14 //Average current
 #define bq27542CMD_AI_MSB    	0x15
-#define bq27542CMD_TTE_LSB   	0x16
+#define bq27542CMD_TTE_LSB   	0x16 //Time to Empty
 #define bq27542CMD_TTE_MSB   	0x17
-#define bq27542CMD_TTF_LSB   	0x18
-#define bq27542CMD_TTF_MSB   	0x19
-#define bq27542CMD_SI_LSB    	0x1A
-#define bq27542CMD_SI_MSB    	0x1B
-#define bq27542CMD_STTE_LSB  	0x1C
-#define bq27542CMD_STTE_MSB  	0x1D
-#define bq27542CMD_MLI_LSB   	0x1E
-#define bq27542CMD_MLI_MSB   	0x1F
-#define bq27542CMD_MLTTE_LSB 	0x20
-#define bq27542CMD_MLTTE_MSB 	0x21
-#define bq27542CMD_AE_LSB    	0x22
-#define bq27542CMD_AE_MSB    	0x23
-#define bq27542CMD_AP_LSB    	0x24
-#define bq27542CMD_AP_MSB    	0x25
-#define bq27542CMD_TTECP_LSB 	0x26
-#define bq27542CMD_TTECP_MSB 	0x27
-#define bq27542CMD_RSVD_LSB  	0x28
-#define bq27542CMD_RSVD_MSB  	0x29
-#define bq27542CMD_CC_LSB    	0x2A
+#define bq27542CMD_FCCF_LSB   	0x18 //Full charge capacity filtered
+#define bq27542CMD_FCCF_MSB   	0x19
+#define bq27542CMD_SS_LSB    	0x1A //Safety Status
+#define bq27542CMD_SS_MSB    	0x1B
+#define bq27542CMD_FCCU_LSB  	0x1C //Full charge capacity unfiltered
+#define bq27542CMD_FCCU_MSB  	0x1D
+#define bq27542CMD_IMAX_LSB   	0x1E //Imax
+#define bq27542CMD_IMAX_MSB   	0x1F
+#define bq27542CMD_RCU_LSB 		0x20 //Remaining capacity unfiltered
+#define bq27542CMD_RCU_MSB 		0x21
+#define bq27542CMD_RCF_LSB    	0x22 //Remaining capacity filtered
+#define bq27542CMD_RCF_MSB    	0x23
+#define bq27542CMD_BTP1S_LSB  	0x24 //BTPSOC1 set
+#define bq27542CMD_BTP1S_MSB    0x25
+#define bq27542CMD_BTP1C_LSB 	0x26 //BTPSOC1 clear
+#define bq27542CMD_BTP1C_MSB 	0x27
+#define bq27542CMD_ITMP_LSB  	0x28 //Internal temperature
+#define bq27542CMD_ITMP_MSB  	0x29
+#define bq27542CMD_CC_LSB    	0x2A //Cycle count
 #define bq27542CMD_CC_MSB    	0x2B
-#define bq27542CMD_SOC_LSB   	0x2C
+#define bq27542CMD_SOC_LSB   	0x2C //State of charge
 #define bq27542CMD_SOC_MSB   	0x2D
+#define bq27542CMD_SOH_LSB   	0x2E //State of health
+#define bq27542CMD_SOH_MSB   	0x2F
+#define bq27542CMD_CVLT_LSB   	0x30 //Charging voltage
+#define bq27542CMD_CVLT_MSB   	0x31
+#define bq27542CMD_CCRNT_LSB   	0x32 //Charging current
+#define bq27542CMD_CCRNT_MSB   	0x33
+#define bq27542CMD_PCHRG_LSB   	0x34 //Passed charge
+#define bq27542CMD_PCHRG_MSB   	0x35
+#define bq27542CMD_DOD0_LSB   	0x36 //DO D0 (D0 not D'O')
+#define bq27542CMD_DOD0_MSB   	0x37
+#define bq27542CMD_SDC_LSB   	0x38 //Self discharge current
+#define bq27542CMD_SDC_MSB   	0x39
 
 
 #define ATRATE_MA            -100           // USER CONFIG: AtRate setting (mA)

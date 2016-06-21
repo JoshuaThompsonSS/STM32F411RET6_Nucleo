@@ -66,16 +66,17 @@ uint16_t BQ27542_getDeviceType(void){
 uint16_t BQ27542_getUnfilteredSOC(void){
 	//units: %
 	int soc;
+	BQ27542_read(bq27542CMD_USOC_LSB, 2);
+	soc = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
-	//TODO: Josh - develop code
 	return soc;
 }
 
 uint16_t BQ27542_getVoltage(void){
 	//units: mV
-	int mV;
-
-	//TODO: Josh - develop code
+	int mV; //bq27542CMD_VOLT_LSB
+	BQ27542_read(bq27542CMD_VOLT_LSB, 2);
+	mV = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return mV;
 }
 
@@ -83,23 +84,24 @@ uint16_t BQ27542_getNomAvailableCapacity(void){
 	//units: mAh
 	int nomCap;
 
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_NAC_LSB, 2);
+	nomCap = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return nomCap;
 }
 
 uint16_t BQ27542_getFullAvailableCapacity(void){
 	//units: mAh
 	int fullCap;
-	//TODO: Josh - develop code
-
+	BQ27542_read(bq27542CMD_FAC_LSB, 2);
+	fullCap = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return fullCap;
 }
 
 uint16_t BQ27542_getRemainingCapacity(void){
 	//units: mAh
 	int remCap;
-
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_RMC_LSB, 2);
+	remCap = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
 	return remCap;
 }
@@ -107,26 +109,24 @@ uint16_t BQ27542_getRemainingCapacity(void){
 uint16_t BQ27542_getFullChargeCapacity(void){
 	//units: mAh
 	int fullChrgCap;
-
-	//TODO: Josh - develop code
-
+	BQ27542_read(bq27542CMD_FCC_LSB, 2);
+	fullChrgCap = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return fullChrgCap;
 }
 
 uint16_t BQ27542_getAverageCurrent(void){
 	//units: mA
 	int aveCurrent;
-
-	//TODO: Josh - develop code
-
+	BQ27542_read(bq27542CMD_AI_LSB, 2);
+	aveCurrent = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return aveCurrent;
 }
 
 uint16_t BQ27542_getTimeToEmpty(void){
 	//units: min
 	int timeToEmpty;
-
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_TTE_LSB, 2);
+	timeToEmpty = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return timeToEmpty;
 }
 
@@ -134,7 +134,8 @@ uint16_t BQ27542_getFullChargeCapacityFiltered(void){
 	//units: mAh
 	int fullChrgCapFilt;
 
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_FCCF_LSB, 2);
+	fullChrgCapFilt = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
 	return fullChrgCapFilt;
 }
@@ -143,7 +144,8 @@ uint16_t BQ27542_getFullChargeCapacityUnfiltered(void){
 	//units: mAh
 	int fullChrgCapUnfilt;
 
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_FCCU_LSB, 2);
+	fullChrgCapUnfilt = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return fullChrgCapUnfilt;
 }
 
@@ -151,7 +153,8 @@ uint16_t BQ27542_getImax(void){
 	//units: mAh
 	int imax;
 
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_IMAX_LSB, 2);
+	imax = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return imax;
 }
 
@@ -159,7 +162,8 @@ uint16_t BQ27542_getRemainingCapacityUnfiltered(void){
 	//units: mAh
 	int remCapUnfilt;
 
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_RCU_LSB, 2);
+	remCapUnfilt = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
 	return remCapUnfilt;
 }
@@ -168,7 +172,8 @@ uint16_t BQ27542_getRemainingCapacityFiltered(void){
 	//units: mAh
 	int remCapFilt;
 
-	//TODO: Josh - develop code
+	BQ27542_read(bq27542CMD_RCF_LSB, 2);
+	remCapFilt = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
 	return remCapFilt;
 }
@@ -176,29 +181,33 @@ uint16_t BQ27542_getRemainingCapacityFiltered(void){
 uint16_t BQ27542_setBTPSOC1(int mAh){
 	//units: mAh
 	int btpsoc1;
-
-	//TODO: Josh - develop code
+	//TODO: Josh - need to write command
+	//BQ27542_read(bq27542CMD_BTP1S_LSB, 2);
+	//btpsoc1 = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return btpsoc1;
 }
 
 uint16_t BQ27542_clearBTPSOC1(void){
 	//units: mAh
 	int btpsoc1;
-
-	//TODO: Josh - develop  code
+	//TODO: Josh - need to sent write command to clear
+	//BQ27542_read(bq27542CMD_BTP1C_LSB, 2);
+	//btpsoc1 = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return btpsoc1;
 }
 uint16_t BQ27542_getInternalTemperature(void){
 	//units: 0.1 deg K
 	int intTemp;
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_ITMP_LSB, 2);
+	intTemp = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return intTemp;
 }
 
 uint16_t BQ27542_getCycleCount(void){
 	//units: count
 	int cycleCnt;
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_CC_LSB, 2);
+	cycleCnt = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
 	return cycleCnt;
 }
@@ -206,7 +215,8 @@ uint16_t BQ27542_getCycleCount(void){
 uint16_t BQ27542_getStateOfCharge(void){
 	//units: %
 	int soc;
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_SOC_LSB, 2);
+	soc = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
 	return soc;
 }
@@ -214,15 +224,16 @@ uint16_t BQ27542_getStateOfCharge(void){
 uint16_t BQ27542_getStateOfHealth(void){
 	//units % / num
 	int soh;
-
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_SOH_LSB, 2);
+	soh = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return soh;
 }
 
 uint16_t BQ27542_getChargingVoltage(void){
 	//units: mV
 	int chrgVolt;
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_CVLT_LSB, 2);
+	chrgVolt = transBytes2UnsignedInt(RxData[1], RxData[0]);//TODO: Josh - develop  code
 
 	return chrgVolt;
 }
@@ -231,14 +242,16 @@ uint16_t BQ27542_getChargingCurrent(void){
 	//units: mA
 	int chrgCurrent;
 
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_CCRNT_LSB, 2);
+	chrgCurrent = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return chrgCurrent;
 }
 
 uint16_t BQ27542_getPassedCharge(void){
 	//units: mAh
 	int passedChrg;
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_PCHRG_LSB, 2);
+	passedChrg = transBytes2UnsignedInt(RxData[1], RxData[0]);//TODO: Josh - develop  code
 
 	return passedChrg;
 }
@@ -246,7 +259,8 @@ uint16_t BQ27542_getPassedCharge(void){
 uint16_t BQ27542_getDOD0(void){
 	//units: hex
 	int dod0;
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_DOD0_LSB, 2);
+	dod0 = transBytes2UnsignedInt(RxData[1], RxData[0]);
 
 	return dod0;
 }
@@ -255,7 +269,8 @@ uint16_t BQ27542_getSelfDischargeCurrent(void){
 	//units: mA
 	int disCurrent;
 
-	//TODO: Josh - develop  code
+	BQ27542_read(bq27542CMD_SDC_LSB, 2);
+	disCurrent = transBytes2UnsignedInt(RxData[1], RxData[0]);
 	return disCurrent;
 }
 

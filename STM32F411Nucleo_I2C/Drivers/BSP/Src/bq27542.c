@@ -20,8 +20,12 @@ void BQ27542_read(unsigned char cmd, unsigned int bytes)
   unsigned char tx[1];
 
   tx[0] = cmd;
-  HAL_I2C_Master_Transmit(&hi2c1, I2CSLAVEADDR, tx, 1, 0xFFFF);
-  HAL_I2C_Master_Receive(&hi2c1, I2CSLAVEADDR, RxData, bytes, 0xFFFF);
+  if(HAL_I2C_Master_Transmit(&hi2c1, I2CSLAVEADDR, tx, 1, 0xFFFF) != HAL_OK){
+	  BQ27542_error();
+  }
+  if(HAL_I2C_Master_Receive(&hi2c1, I2CSLAVEADDR, RxData, bytes, 0xFFFF) != HAL_OK){
+	  BQ27542_error();
+  }
 
 }
 
@@ -30,18 +34,22 @@ void BQ27542_cmdWrite(unsigned char cmd, unsigned char data)
   unsigned char tx[2];
   tx[0] = cmd;
   tx[1] = data;
-  HAL_I2C_Master_Transmit(&hi2c1, I2CSLAVEADDR, tx, 2, 0xFFFF);
+  if(HAL_I2C_Master_Transmit(&hi2c1, I2CSLAVEADDR, tx, 2, 0xFFFF) != HAL_OK){
+	  BQ27542_error();
+  }
 
 }
 
 void BQ27542_blockWrite(unsigned char *buffer, unsigned int length)
 {
-  HAL_I2C_Master_Transmit(&hi2c1, I2CSLAVEADDR, buffer, length, 0xFFFF);
+  if(HAL_I2C_Master_Transmit(&hi2c1, I2CSLAVEADDR, buffer, length, 0xFFFF) != HAL_OK){
+	  BQ27542_error();
+  }
 }
 
 void BQ27542_error(void)
 {
-
+	int error = 1;
 }
 
 uint16_t BQ27542_getTemperature(void){

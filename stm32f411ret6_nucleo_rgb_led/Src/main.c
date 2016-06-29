@@ -245,6 +245,7 @@ void stopModeTest(void){
 	 */
 	/* Initialize LED*/
 	 initLED();
+	 toggleLED(); //turn led pa5 to HIGH state
 	 GPIO_TypeDef  * GPIOx = GPIOA;
 	 uint32_t modera = GPIOx->MODER;
 	 uint32_t idr = GPIOx->IDR;
@@ -263,9 +264,9 @@ void stopModeTest(void){
 	//Init stop mode test variables
 	a = 5; b = 6;
 	global_a = 5; global_b = 6;
+
 	HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
 	/* Initialize PWM for Functional RGB LED only if variables saved*/
-
 	//make sure GPIOA register did not change
 	int c = 0;
 	bool saved = false;
@@ -401,85 +402,47 @@ void sleepModeTest(void){
 
 
 void standbyModeTest(void){
-	/*
-	 * Make sure peripherals clocks off, main clock on, SRAM and registers saved, variables saved
-	 *
-	 */
-	/* Initialize LED*/
+	initLED();
 
-	 initLED();
-	 GPIO_TypeDef  * GPIOx = GPIOA;
-	 uint32_t modera = GPIOx->MODER;
-	 uint32_t idr = GPIOx->IDR;
-	 uint32_t bsrr = GPIOx->BSRR;
-	 uint32_t lckr = GPIOx->LCKR;
-	 uint32_t odr = GPIOx->ODR;
-	 uint32_t osspeed = GPIOx->OSPEEDR;
-	 uint32_t otype = GPIOx->OTYPER;
-	 uint32_t pupdr = GPIOx->PUPDR;
-	/* Initialize Button Interrupt */
-	initButtonInterrupt();
+	/* Enable Power Clock */
+	__HAL_RCC_PWR_CLK_ENABLE();
 
-	//variables to check if saved
-	int a = 0, b = 0;
+	/* Check and handle if the system was resumed from Standby mode */
+	if(__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
+	{
+	  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);
 
-	//Init stop mode test variables
-	a = 5; b = 6;
-	global_a = 5; global_b = 6;
+	  /* Infinite loop */
+	  while (1)
+	  {
+		/* Toggle LED2 */
+		toggleLED();
 
-	//Enter standby mode
-	initWakeupInterrupt();
-	HAL_PWR_EnterSTANDBYMode();
-	while(1){}
-
-	//make sure GPIOA register did not change
-	int c = 0;
-	bool saved = false;
-	bool saved_reg = false;
-	 saved_reg = (GPIOA->MODER == modera);
-	 saved = saved_reg;
-	 c++;
-	 //if(!saved_reg){blink_led(c); wait_sec(5);}
-
-	 saved_reg = (GPIOA->IDR == idr);
-	 saved &= saved_reg;
-	 c++;
-	 //if(!saved_reg){blink_led(c); wait_sec(5);}
-
-	 saved_reg = (GPIOA->BSRR == bsrr);
-	 saved &= saved_reg;
-	 c++;
-	 //if(!saved_reg){blink_led(c); wait_sec(5);}
-
-	 saved_reg = (GPIOA->LCKR == lckr);
-	 saved &= saved_reg;
-	 c++;
-	 //if(!saved_reg){blink_led(c); wait_sec(5);}
-
-	 saved_reg = (GPIOA->ODR == odr);
-	 saved &= saved_reg;
-	 c++;
-	 //if(!saved_reg){blink_led(c); wait_sec(5);}
-
-	 saved_reg = (GPIOA->OSPEEDR == osspeed);
-	 saved &= saved_reg;
-	 c++;
-	 //if(!saved){blink_led(c); wait_sec(5);}
-
-	 saved_reg = (GPIOA->OTYPER == otype);
-	 saved &= saved_reg;
-	 c++;
-	 //if(!saved_reg){blink_led(c); wait_sec(5);}
-
-	 saved_reg = (GPIOA->PUPDR == pupdr);
-	 saved &= saved_reg;
-	 c++;
-	 //if(!saved_reg){blink_led(c); wait_sec(5);}
-
-	//LED sequence should run only if registers and variables were saved after STOP mode exits
-	if(a==5 && b==6 && global_a==5 && global_b ==6 && saved){
-		InitRGBCmd(); //init uart, rgb led driver and services
+		/* Insert a 100ms delay */
+		HAL_Delay(100);
+	  }
 	}
+
+
+	  /* Allow access to Backup */
+	  HAL_PWR_EnableBkUpAccess();
+
+	  /* Reset RTC Domain */
+	  __HAL_RCC_BACKUPRESET_FORCE();
+	  __HAL_RCC_BACKUPRESET_RELEASE();
+
+	  /* Disable all used wakeup sources: Pin1(PA.0) */
+	  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
+
+	  /* Clear all related wakeup flags */
+	  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+
+	  /* Re-enable all used wakeup sources: Pin1(PA.0) */
+	  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+
+	  /*## Enter Standby Mode ####################################################*/
+	  /* Request to enter STANDBY mode  */
+	  HAL_PWR_EnterSTANDBYMode();
 
 }
 
@@ -494,12 +457,9 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
-  initWakeupInterrupt();
-  HAL_PWR_EnterSTANDBYMode();
-  //while(1){}
 
   /* Initialize LED*/
-  initLED();
+  //initLED();
 
   /* Initialize Button Interrupt */
   //initButtonInterrupt();
@@ -508,14 +468,14 @@ int main(void)
   //InitRGBCmd(); //init uart, rgb led driver and services
   //stopModeTest();
   //sleepModeTest();
-  //standbyModeTest();
+  standbyModeTest();
 
 
   while (1)
   {
 	//CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
-	  toggleLED();
-	  wait_sec(1);
+	  //toggleLED();
+	  //wait_sec(1);
 
   }
 

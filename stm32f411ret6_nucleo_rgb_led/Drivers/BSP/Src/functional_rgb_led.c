@@ -123,6 +123,7 @@ void FUNCTIONAL_RGB_LED_InitCmdLine(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_StartService(void){
 	//Cmd line testing
+
 	FUNCTIONAL_RGB_LED_InitCmdLine();
 	//init rgb led driver handle (rgbHandle)
 	FUNCTIONAL_RGB_LED_InitHandle();
@@ -202,6 +203,7 @@ void FUNCTIONAL_RGB_LED_InitHandle(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_InitSequences(void){
 	//rgb led sequences commonly used
+	sequenceHandlerEn = true;
 
 	FUNCTIONAL_RGB_LED_InitOnSeq(&onSequence);
 	sequenceList[ON_SEQ_TYPE] = &onSequence;
@@ -1089,15 +1091,37 @@ void FUNCTIONAL_RGB_LED_SetLogOutput(rgb_led_step_t * step){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_InitInterruptTimer(void){
+	FUNCTIONAL_RGB_LED_DeInitInterruptTimer();
+	FUNCTIONAL_RGB_LED_StopInterruptTimer();
 	RGBInterruptTimHandle.Instance = FUNC_RGB_INT_TIM_REG;
-	uint32_t timer_freq = HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT;
+	uint32_t timer_freq = (HAL_RCC_GetSysClockFreq() / RGB_PRESCALER_DFLT);
 	int32_t timer_period = timer_freq / RGB_PWMFREQ_DFLT; //clock will generate interrupt every 20 millisec
 	RGBInterruptTimHandle.Init.Period = timer_period;
 	RGBInterruptTimHandle.Init.Prescaler = RGB_PRESCALER_DFLT;
 	RGBInterruptTimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	RGBInterruptTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
 	RGBInterruptTimHandle.Init.RepetitionCounter = 0;
+	HAL_TIM_Base_Init(&RGBInterruptTimHandle); //this will also call HAL_TIM_Base_MspInit to init clock and interrupts
 
+	//activate TIM / start with interrupt by calling FUNCTIONAL_RGB_LED_StartInterruptTimer
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_InitInterruptLongTimer()
+** DESCRIPTION:
+** 				- Test timer for longer periods
+** 				- Just enter value for period and prescaler
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_InitInterruptLongTimer(void){
+	FUNCTIONAL_RGB_LED_DeInitInterruptTimer();
+	FUNCTIONAL_RGB_LED_StopInterruptTimer();
+	RGBInterruptTimHandle.Instance = FUNC_RGB_INT_TIM_REG;
+	RGBInterruptTimHandle.Init.Period = 16000000;//timer_period*1000;
+	RGBInterruptTimHandle.Init.Prescaler = 50000;//RGB_PRESCALER_DFLT;
+	RGBInterruptTimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	RGBInterruptTimHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+	RGBInterruptTimHandle.Init.RepetitionCounter = 0;
 	HAL_TIM_Base_Init(&RGBInterruptTimHandle); //this will also call HAL_TIM_Base_MspInit to init clock and interrupts
 
 	//activate TIM / start with interrupt by calling FUNCTIONAL_RGB_LED_StartInterruptTimer
@@ -1193,7 +1217,8 @@ void TIM4_IRQHandler(void){
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	//run rgb led sequence routine
+
+	if(!sequenceHandlerEn){return;}
 	if(htim->Instance == FUNC_RGB_INT_TIM_REG){
 		FUNCTIONAL_RGB_LED_SequenceHandler();
 	}

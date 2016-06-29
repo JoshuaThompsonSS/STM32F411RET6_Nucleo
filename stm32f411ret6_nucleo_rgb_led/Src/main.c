@@ -318,6 +318,9 @@ void stopModeTest(void){
 
 }
 
+
+
+
 void sleepModeTest(void){
 	/*
 	 * Make sure peripherals clocks off, main clock on, SRAM and registers saved, variables saved
@@ -395,9 +398,18 @@ void sleepModeTest(void){
 
 	//LED sequence should run only if registers and variables were saved after STOP mode exits
 	if(a==5 && b==6 && global_a==5 && global_b ==6 && saved){
-		InitRGBCmd(); //init uart, rgb led driver and services
+		//InitRGBCmd(); //init uart, rgb led driver and services
 	}
 
+}
+
+void sleepModeTestWithTimer(void){
+	  sequenceHandlerEn = false;
+	  FUNCTIONAL_RGB_LED_InitInterruptLongTimer();
+	  //start timer interrupt
+	  FUNCTIONAL_RGB_LED_StartInterruptTimer();
+	  wait_sec(2);
+	  sleepModeTest();
 }
 
 
@@ -468,14 +480,15 @@ int main(void)
   //InitRGBCmd(); //init uart, rgb led driver and services
   //stopModeTest();
   //sleepModeTest();
+  //sleepModeTestWithTimer();
   standbyModeTest();
 
 
   while (1)
   {
 	//CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
-	  //toggleLED();
-	  //wait_sec(1);
+	 toggleLED();
+	 wait_sec(1);
 
   }
 

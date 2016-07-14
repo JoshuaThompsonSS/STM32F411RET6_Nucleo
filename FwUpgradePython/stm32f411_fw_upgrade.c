@@ -60,6 +60,17 @@ int uart_timeout(void){
     return 0;
 }
 
+/* dummy get uart timeout param */
+int get_uart_timeout(void){
+	/* TODO: define function */
+	return 0;
+}
+
+/* dummy set uart timeout */
+void set_uart_timeout(int timeout){
+	/* TODO: define function */
+}
+
 void mdebug(int level, const char * message){
     /* TODO: print error?
     if(QUIET >= level):
@@ -242,7 +253,7 @@ void cmdGo(unsigned long addr):
         /* TODO: handle nack */
     }
 
-void cmdWriteMemory(unsigned long addr, unsigned char *data):
+void cmdWriteMemory(unsigned long addr, unsigned char *data){
     if(!(strlen(data) <= 256)){ return 0;} /* TODO: handle assert */
     if(cmdGeneric(0x31)){
         mdebug(10, "*** Write memory command")
@@ -256,7 +267,7 @@ void cmdWriteMemory(unsigned long addr, unsigned char *data):
         length_data[0] = lng;
         uart_write(length_data) /* len really */
         unsigned char crc = 0xFF;
-        unsigned char c[1];
+        unsigned char c;
         for(int i = 0; i <= lng; i++){
             c = data[i];
             crc = crc ^ c;
@@ -271,61 +282,78 @@ void cmdWriteMemory(unsigned long addr, unsigned char *data):
     else{
         /* TODO: handle nack */
     }
+}
 
-def cmdEraseMemory(self, sectors = None):
-    if self.extended_erase:
-        return cmd.cmdExtendedEraseMemory()
+void cmdEraseMemory(unsigned char * sectors = NULL){
+    if(extendedErase){
+        return cmdExtendedEraseMemory();
+	}
 
-    if self.cmdGeneric(0x43):
-        mdebug(10, "*** Erase memory command")
-        if sectors is None:
-            # Global erase
-            self.sp.write(chr(0xFF))
-            self.sp.write(chr(0x00))
-        else:
-            # Sectors erase
-            self.sp.write(chr((len(sectors)-1) & 0xFF))
-            crc = 0xFF
-            for c in sectors:
-                crc = crc ^ c
-                self.sp.write(chr(c))
-            self.sp.write(chr(crc))
-        self._wait_for_ask("0x43 erasing failed")
-        mdebug(10, "    Erase memory done")
-    else:
-        raise CmdException("Erase memory (0x43) failed")
+    if(cmdGeneric(0x43)){
+        mdebug(10, "*** Erase memory command");
+        if(sectors == NULL){
+            /* Global erase */
+            uart_write(0xFF);
+            uart_write(0x00);
+		}
+        else{
+            /* Sectors erase */
+            uart_write((strlen(sectors)-1) & 0xFF);
+            unsigned char crc = 0xFF;
+			unsigned char c;
+            for(int i = 0; i<strlen(sectors); i++){
+				c = sectors[i];
+                crc = crc ^ c;
+                uart_write(c);
+			}
+            uart_write(crc);
+			wait_for_ask();
+			mdebug(10, "    Erase memory done");
+		}
+	}
+    else{
+        /* TODO: handle nack */
+	}
+}
 
-void cmdExtendedEraseMemory(void):
+void cmdExtendedEraseMemory(void){
     if(cmdGeneric(0x44)){
         mdebug(10, "*** Extended Erase memory command");
         /* Global mass erase */
         uart_write(0xFF);
         uart_write(0xFF);
         # Checksum
-        self.sp.write(chr(0x00))
-        tmp = self.sp.timeout
-        self.sp.timeout = 30
-        print "Extended erase (0x44), this can take ten seconds or more"
-        self._wait_for_ask("0x44 erasing failed")
-        self.sp.timeout = tmp
+        uart_write(0x00);
+        int tmp = get_uart_timeout();
+        set_uart_timeout(30);
+        /* Extended erase (0x44), can take ten seconds or more */
+        wait_for_ask();
+        set_uart_timeout(tmp); /* set back to default */
         mdebug(10, "    Extended Erase memory done");
     }
     else{
         /* TODO: handle nack */
     }
-def cmdWriteProtect(self, sectors):
-    if self.cmdGeneric(0x63):
-        mdebug(10, "*** Write protect command")
-        self.sp.write(chr((len(sectors)-1) & 0xFF))
-        crc = 0xFF
-        for c in sectors:
-            crc = crc ^ c
-            self.sp.write(chr(c))
-        self.sp.write(chr(crc))
-        self._wait_for_ask("0x63 write protect failed")
-        mdebug(10, "    Write protect done")
-    else:
-        raise CmdException("Write Protect memory (0x63) failed")
+}
+void cmdWriteProtect(unsigned char * sectors = NULL):
+    if(cmdGeneric(0x63)){
+        mdebug(10, "*** Write protect command");
+        uart_write((strlen(sectors)-1) & 0xFF));
+        unsigned char crc = 0xFF;
+		unsigned char c;
+        for(int i = 0; i<strlen(sectors); i++){
+			c = sectors[i];
+            crc = crc ^ c;
+            uart_write(c);
+		}
+			
+        uart_write(crc);
+        wait_for_ask();
+        mdebug(10, "    Write protect done");
+	}
+    else{
+		/* TODO: handle nack */
+    }
 
 def cmdWriteUnprotect(self):
     if self.cmdGeneric(0x73):

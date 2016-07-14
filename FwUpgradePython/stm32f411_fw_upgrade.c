@@ -96,7 +96,7 @@ char uart_reads(unsigned char* buffer, int len){
 }
 
 /* dummy uart write function */
-void uart_write(const unsigned char * buffer){
+void uart_write(const unsigned char * buffer, int len){
     /* TODO: use real uart write function when ready */
 }
 
@@ -177,8 +177,8 @@ int initChip(void){
     /* Set boot */
     uart_set_rts(0);
     reset();
-
-    uart_write("\x7F")       /* tell bootloader to startup */
+	unsigned char cmd[] = {0x7F};
+    uart_write(cmd, 1)       /* tell bootloader to startup */
     return wait_for_ask();
 }
 
@@ -188,9 +188,12 @@ void releaseChip(void){
 }
 
 /* Generic cmd routine - use this for high level cmds */
-int cmdGeneric(unsigned char cmd){
-    uart_write(cmd);
-    uart_write(cmd ^ 0xFF); /* Control cmd byte */
+int cmdGeneric(unsigned char c){
+	unsigned char cmd[1];
+	cmd[0] = c;
+    uart_write(cmd, 1);
+	cmd[0] = c ^ 0xFF;
+    uart_write(cmd, 1); /* Control cmd byte */
     return wait_for_ask();
 }
 
@@ -279,14 +282,14 @@ void cmdReadMemory(unsigned long addr, int lng, unsigned char * data):
         mdebug(10, "*** ReadMemory command");
         unsigned char * addr_buffer = (unsigned char *) malloc(sizeof(unsigned char)*5);
         encode_addr(addr, addr_buffer); /* Get addr and crc buffer */
-        uart_write(addr_buffer);
+        uart_write(addr_buffer, 5);
         wait_for_ask();
         int n = (lng - 1) & 0xFF;
         unsigned char crc = n ^ 0xFF;
         unsigned char n_crc_buff[2];
         n_crc_buff[0] = n;
         n_crc_buff[1] = crc;
-        uart_write(n_crc_buff);
+        uart_write(n_crc_buff, 2);
         wait_for_ask();
         /* read lng number of bytes */
         uart_reads(data, lng);
@@ -302,7 +305,7 @@ void cmdGo(unsigned long addr):
         mdebug(10, "*** Go command")
         unsigned char * addr_buffer = (unsigned char *) malloc(sizeof(unsigned char)*5);
         encode_addr(addr, addr_buffer); /* Get addr and crc buffer */
-        uart_write(addr_buffer);
+        uart_write(addr_buffer, 5);
         wait_for_ask();
     }
     else{
@@ -320,22 +323,21 @@ void cmdWriteMemory(unsigned long addr, unsigned char *data){
         mdebug(10, "*** Write memory command")
         unsigned char * addr_buffer = (unsigned char *) malloc(sizeof(unsigned char)*5);
         encode_addr(addr, addr_buffer); /* Get addr and crc buffer */
-        uart_write(addr_buffer);
+        uart_write(addr_buffer, 5);
         wait_for_ask();
         int lng = (strlen(data)-1) & 0xFF
         mdebug(10, "    %s bytes to write"); /* TODO: debug ? */
         unsigned char length_data[1];
         length_data[0] = lng;
-        uart_write(length_data) /* len really */
-        unsigned char crc = 0xFF;
-        unsigned char c;
+        uart_write(length_data, 1) /* len really */
+        unsigned char crc[] = {0xFF};
+        unsigned char c[1];
         for(int i = 0; i <= lng; i++){
-            c = data[i];
-            crc = crc ^ c;
-            uart_write(c);
+            c[0] = data[i];
+            crc[0] = crc[0] ^ c[0];
+            uart_write(c, 1);
         }
-        c = crc;
-        uart_write(c);
+        uart_write(crc, 1);
 
         wait_for_ask();
         mdebug(10, "    Write memory done");
@@ -355,20 +357,24 @@ void cmdEraseMemory(unsigned char * sectors = NULL){
         mdebug(10, "*** Erase memory command");
         if(sectors == NULL){
             /* Global erase */
-            uart_write(0xFF);
-            uart_write(0x00);
+			unsigned char cmd[] = {0xFF};
+            uart_write(cmd, 1);
+			cmd[0] = 0x00;
+            uart_write(cmd, 1);
 		}
         else{
             /* Sectors erase */
-            uart_write((strlen(sectors)-1) & 0xFF);
-            unsigned char crc = 0xFF;
-			unsigned char c;
+			unsigned char cmd[1];
+			cmd[0] = (strlen(sectors)-1) & 0xFF;
+            uart_write(cmd, 1);
+            unsigned char crc[] = {0xFF};
+			unsigned char c[1];
             for(int i = 0; i<strlen(sectors); i++){
-				c = sectors[i];
-                crc = crc ^ c;
-                uart_write(c);
+				c[0] = sectors[i];
+                crc[0] = crc[0] ^ c[0];
+                uart_write(c, 1);
 			}
-            uart_write(crc);
+            uart_write(crc, 1);
 			wait_for_ask();
 			mdebug(10, "    Erase memory done");
 		}
@@ -383,10 +389,12 @@ void cmdExtendedEraseMemory(void){
     if(cmdGeneric(0x44)){
         mdebug(10, "*** Extended Erase memory command");
         /* Global mass erase */
-        uart_write(0xFF);
-        uart_write(0xFF);
-        # Checksum
-        uart_write(0x00);
+		unsigned char cmd[] = {0xFF};
+        uart_write(cmd, 1);
+        uart_write(cmd, 1);
+        /* Checksum */
+		cmd[0] = 0x00;
+        uart_write(cmd, 1);
         int tmp = get_uart_timeout();
         set_uart_timeout(30);
         /* Extended erase (0x44), can take ten seconds or more */
@@ -402,16 +410,19 @@ void cmdExtendedEraseMemory(void){
 void cmdWriteProtect(unsigned char * sectors = NULL):
     if(cmdGeneric(0x63)){
         mdebug(10, "*** Write protect command");
-        uart_write((strlen(sectors)-1) & 0xFF));
-        unsigned char crc = 0xFF;
-		unsigned char c;
-        for(int i = 0; i<strlen(sectors); i++){
-			c = sectors[i];
-            crc = crc ^ c;
-            uart_write(c);
+		unsigned char cmd[1];
+		cmd[0] = (strlen(sectors)-1) & 0xFF;
+        uart_write(cmd, 1);
+        unsigned char crc[] = {0xFF};
+		unsigned char c[1];
+		int len = strlen(sectors);
+        for(int i = 0; i<len; i++){
+			c[0] = sectors[i];
+            crc[0] = crc[0] ^ c[0];
+            uart_write(c, 1);
 		}
 			
-        uart_write(crc);
+        uart_write(crc, 1);
         wait_for_ask();
         mdebug(10, "    Write protect done");
 	}

@@ -5,13 +5,25 @@ QUIET = 20
 #define CHIP_ID_MAX_STR         100
         
 int extendedErase = 0;
-        
+
+typedef struct error_status_t{
+	int nack;
+	int timeout;
+	int data_len;
+	int unknown;
+}error_status_t;
+
+typedef enum error_status_type_t {NACK_ERROR, TIMEOUT_ERROR; DATA_LEN_ERROR; UNKNOWN_ERROR}error_status_type_t;
+
+
+error_status_t errorStatus = {0; 0; 0; 0};
+
 typedef struct chip_id_t{
     unsigned int id;
-    unsigned char[CHIP_ID_MAX_STR];
+    unsigned char name[CHIP_ID_MAX_STR];
 } chip_id_t;
 
-struct chip_ids_s {
+typdef struct chip_ids_t {
     chip_id_t lowDensity;
     chip_id_t medDensity;
     chip_id_t highDensity;
@@ -21,7 +33,41 @@ struct chip_ids_s {
     chip_id_t medDensityUlPwrLine;
     chip_id_t stm32F2xx;
     chip_id_t stm32F4xx;
-} chip_ids_s;
+} chip_ids_t;
+
+/* TODO: add string names to name attribute */
+/* This struct isn't used at the moment but it can be used to verify the chip we are communicating with is correct */
+chip_ids_t chipIDs;
+chipIDs.lowDensity.id = 0x412;
+chipIDs.medDensity.id = 0x410;
+chipIDs.highDensity.id = 0x414;
+chipIDs.medDensityValLine.id = 0x420;
+chipIDs.highDensityValLine.id = 0x428;
+chipIDs.xlDensity.id = 0x430;
+chipIDs.medDensityUlPwrLine.id = 0x416;
+chipIDs.stm32F2xx.id = 0x411;
+chipIDs.stm32F4xx.id = 0x413;
+
+/* Handle error */
+void handle_error(error_status_type_t * error_type){
+	switch(error_type){
+		case NACK_ERROR:
+			errorStatus.nack = 1;
+			break;
+		case TIMEOUT_ERROR:
+			errorStatus.timeout = 1;
+			break;
+		case DATA_LEN_ERROR:
+			errorStatus.data_len = 1;
+			break;
+		case UNKNOWN_ERROR:
+			errorStatus.unknown = 1;
+			break;
+		default:
+			errorStatus.unknown = 1;
+			break;
+	}
+}
 
 /* dummy time sleep */
 void time_sleep(float time_sec){
@@ -98,6 +144,7 @@ void wait_for_ask(void){
     /* TODO: what to do if timeout? */
     if(uart_timeout()){
         /* Timeout handler here */
+		handle_error(TIMEOUT_ERROR);
     }
     else{
         if(ask == 0x79){
@@ -105,14 +152,16 @@ void wait_for_ask(void){
             return 1;
         }
         else{
-            if ask == 0x1F{
+            if(ask == 0x1F){
                 /* NACK */
                 /* TODO: how are we going to handle nack? */
+				handle_error(NACK_ERROR);
                 return 0;
             }
             else{
                 /* Unknown response */
                 /* TODO: how are we going to handle unknown response */
+				handle_error(UNKNOWN_ERROR);
             }
         }
 }
@@ -153,9 +202,9 @@ char cmdGet(void){
         unsigned char version = uart_read();
         mdebug(10, "    Bootloader version: "); /* TODO: print version num ? */
         unsigned char * buff = (unsigned char *) malloc(sizeof(unsigned char) * len);
-        unsigned char * dat = uart_reads(buff, len);
+        uart_reads(buff, len);
         for(int i=0; i<len; i++){
-            if(0x44 == dat[i]){
+            if(0x44 == buff[i]){
                 extendedErase = 1;
             }
         }
@@ -165,6 +214,7 @@ char cmdGet(void){
     }
     else{
         /* TODO: what to do if receive nack? */
+		handle_error(NACK_ERROR);
         return 0;
     }
 }
@@ -182,6 +232,7 @@ unsigned char cmdGetVersion(void){
     }
     else{
         /* TODO: Handle nack ? */
+		handle_error(NACK_ERROR);
         return 0;
     }
 }
@@ -192,13 +243,14 @@ int cmdGetID(void){
         mdebug(10, "*** GetID command")
         char len = uart_read();
         unsigned char * buff = (unsigned char *) malloc(sizeof(unsigned char) * (len+1));
-        unsigned char * id = uart_reads(buff, len+1);
+        uart_reads(buff, len+1);
         wait_for_ask();
-        int devID = (id[0]<<8) + id[1];
+        int devID = (buff[0]<<8) + buff[1]; /* Not doing anything with the other bytes for now -- see AN3155 for info */
         return devID;
     }
     else{
         /* TODO: nack handle */
+		handle_error(NACK_ERROR);
         return 0;
     }
 }
@@ -218,7 +270,10 @@ void encode_addr(unsigned long addr, unsigned char * addr_buffer){
 
 
 void cmdReadMemory(unsigned long addr, int lng, unsigned char * data):
-    if(!(lng <= 256)){return 0;} /* TODO: handler assert error */
+    if(!(lng <= 256)){
+		handle_error(DATA_LEN_ERROR);
+		return 0;
+	} /* TODO: handler assert error */
 
     if(cmdGeneric(0x11)){
         mdebug(10, "*** ReadMemory command");
@@ -238,6 +293,7 @@ void cmdReadMemory(unsigned long addr, int lng, unsigned char * data):
     }
     else{
         /* TODO: handle nack */
+		handle_error(NACK_ERROR);
     }
 }
 
@@ -251,10 +307,15 @@ void cmdGo(unsigned long addr):
     }
     else{
         /* TODO: handle nack */
+		handle_error(NACK_ERROR);
     }
 
 void cmdWriteMemory(unsigned long addr, unsigned char *data){
-    if(!(strlen(data) <= 256)){ return 0;} /* TODO: handle assert */
+    if(!(strlen(data) <= 256)){ 
+		handle_error(DATA_LEN_ERROR);
+		return 0;
+	}
+	
     if(cmdGeneric(0x31)){
         mdebug(10, "*** Write memory command")
         unsigned char * addr_buffer = (unsigned char *) malloc(sizeof(unsigned char)*5);
@@ -281,6 +342,7 @@ void cmdWriteMemory(unsigned long addr, unsigned char *data){
     }
     else{
         /* TODO: handle nack */
+		handle_error(NACK_ERROR);
     }
 }
 
@@ -313,6 +375,7 @@ void cmdEraseMemory(unsigned char * sectors = NULL){
 	}
     else{
         /* TODO: handle nack */
+		handle_error(NACK_ERROR);
 	}
 }
 
@@ -333,6 +396,7 @@ void cmdExtendedEraseMemory(void){
     }
     else{
         /* TODO: handle nack */
+		handle_error(NACK_ERROR);
     }
 }
 void cmdWriteProtect(unsigned char * sectors = NULL):
@@ -353,79 +417,58 @@ void cmdWriteProtect(unsigned char * sectors = NULL):
 	}
     else{
 		/* TODO: handle nack */
+		handle_error(NACK_ERROR);
     }
 
-def cmdWriteUnprotect(self):
-    if self.cmdGeneric(0x73):
-        mdebug(10, "*** Write Unprotect command")
-        self._wait_for_ask("0x73 write unprotect failed")
-        self._wait_for_ask("0x73 write unprotect 2 failed")
-        mdebug(10, "    Write Unprotect done")
-    else:
-        raise CmdException("Write Unprotect (0x73) failed")
+void cmdWriteUnprotect(void){
+    if(cmdGeneric(0x73)){
+        mdebug(10, "*** Write Unprotect command");
+        wait_for_ask();
+        wait_for_ask();
+        mdebug(10, "    Write Unprotect done");
+	}
+    else{
+		/* TODO: handle nack */
+		handle_error(NACK_ERROR);
+    }
+}
 
-def cmdReadoutProtect(self):
-    if self.cmdGeneric(0x82):
-        mdebug(10, "*** Readout protect command")
-        self._wait_for_ask("0x82 readout protect failed")
-        self._wait_for_ask("0x82 readout protect 2 failed")
-        mdebug(10, "    Read protect done")
-    else:
-        raise CmdException("Readout protect (0x82) failed")
+void cmdReadoutProtect(void){
+    if(cmdGeneric(0x82)){
+        mdebug(10, "*** Readout protect command");
+        wait_for_ask();
+        wait_for_ask();
+        mdebug(10, "    Read protect done");
+	}
+    else{
+		/* TODO: handle nack */
+		handle_error(NACK_ERROR);
+    }
+}
 
-def cmdReadoutUnprotect(self):
-    if self.cmdGeneric(0x92):
+void cmdReadoutUnprotect(void)
+    if(cmdGeneric(0x92)){
         mdebug(10, "*** Readout Unprotect command")
-        self._wait_for_ask("0x92 readout unprotect failed")
-        self._wait_for_ask("0x92 readout unprotect 2 failed")
-        mdebug(10, "    Read Unprotect done")
-    else:
-        raise CmdException("Readout unprotect (0x92) failed")
+        wait_for_ask();
+        wait_for_ask();
+        mdebug(10, "    Read Unprotect done");
+	}
+    else{
+		/* TODO: handle nack */
+		handle_error(NACK_ERROR);
+    }
+}
 
+/* Complex commands section */
 
-# Complex commands section
+int readMemory(void){
+    /* TODO: read all data back from stm32 and then compare to image stored in flash */
+	/* return 1 if same 0 if not */
+	return 0;
+}
 
-def readMemory(self, addr, lng):
-    data = []
-    if usepbar:
-        widgets = ['Reading: ', Percentage(),', ', ETA(), ' ', Bar()]
-        pbar = ProgressBar(widgets=widgets,maxval=lng, term_width=79).start()
-    
-    while lng > 256:
-        if usepbar:
-            pbar.update(pbar.maxval-lng)
-        else:
-            mdebug(5, "Read %(len)d bytes at 0x%(addr)X" % {'addr': addr, 'len': 256})
-        data = data + self.cmdReadMemory(addr, 256)
-        addr = addr + 256
-        lng = lng - 256
-    if usepbar:
-        pbar.update(pbar.maxval-lng)
-        pbar.finish()
-    else:
-        mdebug(5, "Read %(len)d bytes at 0x%(addr)X" % {'addr': addr, 'len': 256})
-    data = data + self.cmdReadMemory(addr, lng)
-    return data
-
-def writeMemory(self, addr, data):
-    lng = len(data)
-    if usepbar:
-        widgets = ['Writing: ', Percentage(),' ', ETA(), ' ', Bar()]
-        pbar = ProgressBar(widgets=widgets, maxval=lng, term_width=79).start()
-    
-    offs = 0
-    while lng > 256:
-        if usepbar:
-            pbar.update(pbar.maxval-lng)
-        else:
-            mdebug(5, "Write %(len)d bytes at 0x%(addr)X" % {'addr': addr, 'len': 256})
-        self.cmdWriteMemory(addr, data[offs:offs+256])
-        offs = offs + 256
-        addr = addr + 256
-        lng = lng - 256
-    if usepbar:
-        pbar.update(pbar.maxval-lng)
-        pbar.finish()
-    else:
-        mdebug(5, "Write %(len)d bytes at 0x%(addr)X" % {'addr': addr, 'len': 256})
-    self.cmdWriteMemory(addr, data[offs:offs+lng] + ([0xFF] * (256-lng)) )
+int writeMemory(void){
+	/* TODO: write all data of image from flash to stm32 */
+	/* return 1 if successful and 0 if not */
+	return 0;
+}

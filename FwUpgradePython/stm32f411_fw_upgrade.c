@@ -40,7 +40,7 @@ typedef struct chip_ids_t {
 
 /* TODO: add string names to name attribute */
 /* This struct isn't used at the moment but it can be used to verify the chip we are communicating with is correct */
-chip_ids_t chipIDs;
+chip_ids_t chipIDs = {0,0,0,0,0,0,0,0,0};
 /*
 chipIDs.lowDensity.id = 0x412;
 chipIDs.medDensity.id = 0x410;
@@ -51,7 +51,8 @@ chipIDs.xlDensity.id = 0x430;
 chipIDs.medDensityUlPwrLine.id = 0x416;
 chipIDs.stm32F2xx.id = 0x411;
 chipIDs.stm32F4xx.id = 0x413;
- */
+*/
+
 
 /* Handle error */
 void handle_error(error_status_type_t error_type){

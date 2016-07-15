@@ -236,10 +236,16 @@ int main(void)
   /* Initialize PWM for Functional RGB LED*/
 
   InitRGBCmd(); //init uart, rgb led driver and services
-
+  int maxChars = 10;
   while (1)
   {
-	CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
+
+	//CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
+	  //char *seqMsg = (char*)calloc(maxStr, sizeof(char));
+	  char * nums = (char*)malloc(sizeof(char)*maxChars);
+	  nums[0] = 'h'; nums[1]='e'; nums[2]='\0';
+	  HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
+	  wait_sec(1);
 
   }
 

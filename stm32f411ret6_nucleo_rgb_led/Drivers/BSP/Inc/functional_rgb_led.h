@@ -185,6 +185,9 @@ sequence_init_ptr_t sequenceInitFuncList[RGB_SEQ_COUNT];
 //Timer Interrupt that runs in background
 TIM_HandleTypeDef RGBInterruptTimHandle;
 
+//enable sequence when timer callback executes
+bool sequenceHandlerEn;
+
 
 
 
@@ -244,6 +247,7 @@ void FUNCTIONAL_RGB_LED_SetExpOutput(rgb_led_step_t * step);
 void FUNCTIONAL_RGB_LED_SetLogOutput(rgb_led_step_t * step);
 
 //Sequence interrupt routines that is in charge of running the main rgb led output service
+void FUNCTIONAL_RGB_LED_InitInterruptLongTimer(void); //for testing purposes only
 void FUNCTIONAL_RGB_LED_InitInterruptTimer(void);
 void FUNCTIONAL_RGB_LED_DeInitInterruptTimer(void);
 void FUNCTIONAL_RGB_LED_StartInterruptTimer(void);

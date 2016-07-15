@@ -35,6 +35,7 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "functional_rgb_led.h"
+#include "fuel_gauge.h"
 #include <math.h>
 #include "stdlib.h"
 #include "string.h"
@@ -60,6 +61,9 @@ char *msg = "Hello Nucleo Fun!\n\r";
 float upDur, downDur, holdDur;
 int modeNum;
 int seqNum = 0;
+
+//Power mode testing variables
+int global_a = 0, global_b = 0;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -154,6 +158,13 @@ void initButtonInterrupt(void){
 
 }
 
+//Initialize PA0 as interrupt
+void initWakeupInterrupt(void){
+
+	HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+
+}
+
 //initialize timer used for pwm (timer 2 ch 2)
 void initLEDPwm(void){
 	//enable GPIOA peripheral clock
@@ -218,11 +229,243 @@ void toggleLED(void){
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 }
 
+void blink_led(int c){
+	for(int i = 0; i<c; i++){
+		toggleLED();
+		wait_sec(1);
+		toggleLED();
+		wait_sec(1);
+	}
+}
+
+void stopModeTest(void){
+	/*
+	 * Make sure peripherals clocks off, main clock on, SRAM and registers saved, variables saved
+	 *
+	 */
+	/* Initialize LED*/
+	 initLED();
+	 toggleLED(); //turn led pa5 to HIGH state
+	 GPIO_TypeDef  * GPIOx = GPIOA;
+	 uint32_t modera = GPIOx->MODER;
+	 uint32_t idr = GPIOx->IDR;
+	 uint32_t bsrr = GPIOx->BSRR;
+	 uint32_t lckr = GPIOx->LCKR;
+	 uint32_t odr = GPIOx->ODR;
+	 uint32_t osspeed = GPIOx->OSPEEDR;
+	 uint32_t otype = GPIOx->OTYPER;
+	 uint32_t pupdr = GPIOx->PUPDR;
+	/* Initialize Button Interrupt */
+	initButtonInterrupt();
+
+	//variables to check if saved
+	int a = 0, b = 0;
+
+	//Init stop mode test variables
+	a = 5; b = 6;
+	global_a = 5; global_b = 6;
+
+	HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+	/* Initialize PWM for Functional RGB LED only if variables saved*/
+	//make sure GPIOA register did not change
+	int c = 0;
+	bool saved = false;
+	bool saved_reg = false;
+	 saved_reg = (GPIOA->MODER == modera);
+	 saved = saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->IDR == idr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->BSRR == bsrr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->LCKR == lckr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->ODR == odr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->OSPEEDR == osspeed);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->OTYPER == otype);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->PUPDR == pupdr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	//LED sequence should run only if registers and variables were saved after STOP mode exits
+	if(a==5 && b==6 && global_a==5 && global_b ==6 && saved){
+		InitRGBCmd(); //init uart, rgb led driver and services
+	}
+
+}
+
+
+
+
+void sleepModeTest(void){
+	/*
+	 * Make sure peripherals clocks off, main clock on, SRAM and registers saved, variables saved
+	 *
+	 */
+	/* Initialize LED*/
+	 initLED();
+	 GPIO_TypeDef  * GPIOx = GPIOA;
+	 uint32_t modera = GPIOx->MODER;
+	 uint32_t idr = GPIOx->IDR;
+	 uint32_t bsrr = GPIOx->BSRR;
+	 uint32_t lckr = GPIOx->LCKR;
+	 uint32_t odr = GPIOx->ODR;
+	 uint32_t osspeed = GPIOx->OSPEEDR;
+	 uint32_t otype = GPIOx->OTYPER;
+	 uint32_t pupdr = GPIOx->PUPDR;
+	/* Initialize Button Interrupt */
+	initButtonInterrupt();
+
+	//variables to check if saved
+	int a = 0, b = 0;
+
+	//Init stop mode test variables
+	a = 5; b = 6;
+	global_a = 5; global_b = 6;
+
+	//Enter sleep mode
+	HAL_SuspendTick(); //need to stop the systick timer interrupt (since it will wake up the mcu from sleep)
+	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+	HAL_ResumeTick();
+
+	//make sure GPIOA register did not change
+	int c = 0;
+	bool saved = false;
+	bool saved_reg = false;
+	 saved_reg = (GPIOA->MODER == modera);
+	 saved = saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->IDR == idr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->BSRR == bsrr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->LCKR == lckr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->ODR == odr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->OSPEEDR == osspeed);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->OTYPER == otype);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	 saved_reg = (GPIOA->PUPDR == pupdr);
+	 saved &= saved_reg;
+	 c++;
+	 //if(!saved_reg){blink_led(c); wait_sec(5);}
+
+	//LED sequence should run only if registers and variables were saved after STOP mode exits
+	if(a==5 && b==6 && global_a==5 && global_b ==6 && saved){
+		//InitRGBCmd(); //init uart, rgb led driver and services
+	}
+
+}
+
+void sleepModeTestWithTimer(void){
+	  sequenceHandlerEn = false;
+	  FUNCTIONAL_RGB_LED_InitInterruptLongTimer();
+	  //start timer interrupt
+	  FUNCTIONAL_RGB_LED_StartInterruptTimer();
+	  wait_sec(2);
+	  sleepModeTest();
+}
+
+
+void standbyModeTest(void){
+	initLED();
+
+	/* Enable Power Clock */
+	__HAL_RCC_PWR_CLK_ENABLE();
+
+	/* Check and handle if the system was resumed from Standby mode */
+	if(__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
+	{
+	  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);
+
+	  /* Infinite loop */
+	  while (1)
+	  {
+		/* Toggle LED2 */
+		toggleLED();
+
+		/* Insert a 100ms delay */
+		HAL_Delay(100);
+	  }
+	}
+
+
+	  /* Allow access to Backup */
+	  HAL_PWR_EnableBkUpAccess();
+
+	  /* Reset RTC Domain */
+	  __HAL_RCC_BACKUPRESET_FORCE();
+	  __HAL_RCC_BACKUPRESET_RELEASE();
+
+	  /* Disable all used wakeup sources: Pin1(PA.0) */
+	  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
+
+	  /* Clear all related wakeup flags */
+	  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+
+	  /* Re-enable all used wakeup sources: Pin1(PA.0) */
+	  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+
+	  /*## Enter Standby Mode ####################################################*/
+	  /* Request to enter STANDBY mode  */
+	  HAL_PWR_EnterSTANDBYMode();
+
+}
+
+
+
 
 int main(void)
 {
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
+
 
   /* Configure the system clock */
   SystemClock_Config();
@@ -232,20 +475,20 @@ int main(void)
 
   /* Initialize Button Interrupt */
   //initButtonInterrupt();
+  //wait_sec(1);
 
-  /* Initialize PWM for Functional RGB LED*/
+  //InitRGBCmd(); //init uart, rgb led driver and services
+  //stopModeTest();
+  //sleepModeTest();
+  //sleepModeTestWithTimer();
+  standbyModeTest();
 
-  InitRGBCmd(); //init uart, rgb led driver and services
-  int maxChars = 10;
+
   while (1)
   {
-
 	//CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
-	  //char *seqMsg = (char*)calloc(maxStr, sizeof(char));
-	  char * nums = (char*)malloc(sizeof(char)*maxChars);
-	  nums[0] = 'h'; nums[1]='e'; nums[2]='\0';
-	  HAL_UART_Transmit(&UART_Handle, (uint8_t*)nums, strlen(nums), 0xFFFF);
-	  wait_sec(1);
+	 toggleLED();
+	 wait_sec(1);
 
   }
 
@@ -435,8 +678,9 @@ void SystemClock_Config(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == GPIO_PIN_13){
-		GPIOA->ODR ^= GPIO_PIN_5;
+		//GPIOA->ODR ^= GPIO_PIN_5;
 	}
+
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef *husart){

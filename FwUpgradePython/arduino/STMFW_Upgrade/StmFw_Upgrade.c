@@ -498,6 +498,7 @@ int writeMemory(unsigned long addr){
   
   int complete = 0;
   while(!complete){
+      mdebug(0, "@") //informs python server to send data bytes
       debug_read(data,256);
       if(data[0] == 's' && data[1] == 't' && data[2] == 'o' && data[3] == 'p' && data[4] == '!' && data[5] == '!'){
         //complete!

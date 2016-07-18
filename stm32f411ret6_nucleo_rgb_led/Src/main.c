@@ -237,6 +237,34 @@ void blink_led(int c){
 		wait_sec(1);
 	}
 }
+void Custom_HAL_PWR_EnterSTOPMode(uint32_t Regulator, uint8_t STOPEntry)
+{
+  /* Check the parameters */
+  assert_param(IS_PWR_REGULATOR(Regulator));
+  assert_param(IS_PWR_STOP_ENTRY(STOPEntry));
+
+  /* Select the regulator state in Stop mode: Set PDDS and LPDS bits according to PWR_Regulator value */
+  MODIFY_REG(PWR->CR, (PWR_CR_PDDS | PWR_CR_LPDS), Regulator);
+
+  /* Set SLEEPDEEP bit of Cortex System Control Register */
+  SET_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
+
+  /* Select Stop mode entry --------------------------------------------------*/
+  if(STOPEntry == PWR_STOPENTRY_WFI)
+  {
+    /* Request Wait For Interrupt */
+    __WFI();
+  }
+  else
+  {
+    /* Request Wait For Event */
+    __SEV();
+    __WFE();
+    __WFE();
+  }
+  /* Reset SLEEPDEEP bit of Cortex System Control Register */
+  CLEAR_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
+}
 
 void stopModeTest(void){
 	/*
@@ -245,7 +273,7 @@ void stopModeTest(void){
 	 */
 	/* Initialize LED*/
 	 initLED();
-	 toggleLED(); //turn led pa5 to HIGH state
+	 //toggleLED(); //turn led pa5 to HIGH state
 	 GPIO_TypeDef  * GPIOx = GPIOA;
 	 uint32_t modera = GPIOx->MODER;
 	 uint32_t idr = GPIOx->IDR;
@@ -265,7 +293,7 @@ void stopModeTest(void){
 	a = 5; b = 6;
 	global_a = 5; global_b = 6;
 
-	HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI);
+	HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFI); //PWR_LOWPOWERREGULATOR_ON
 	/* Initialize PWM for Functional RGB LED only if variables saved*/
 	//make sure GPIOA register did not change
 	int c = 0;
@@ -461,6 +489,8 @@ void standbyModeTest(void){
 
 
 
+
+
 int main(void)
 {
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -478,17 +508,17 @@ int main(void)
   //wait_sec(1);
 
   //InitRGBCmd(); //init uart, rgb led driver and services
-  //stopModeTest();
+  stopModeTest();
   //sleepModeTest();
   //sleepModeTestWithTimer();
-  standbyModeTest();
+  //standbyModeTest();
 
 
   while (1)
   {
 	//CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
-	 toggleLED();
-	 wait_sec(1);
+	 //toggleLED();
+	 //wait_sec(1);
 
   }
 

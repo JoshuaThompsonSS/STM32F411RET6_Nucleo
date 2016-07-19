@@ -4,12 +4,12 @@ from threading import Thread, Event
 import serial, time
 
 class Server(Thread):
-    def __init__(self, port="/dev/tty.usbmodem1411", baudrate=115200, parity="E", file_path=None):
+    def __init__(self, port="COM11", baudrate=9600, file_path="blink.bin"):
         super(Server, self).__init__()
         self.serial = serial.Serial()
         self.serial.port = port
         self.serial.baudrate = baudrate
-        self.serial.parity = parity
+        #self.serial.parity = parity
         self.file_path = file_path
         self.data = None
 
@@ -27,25 +27,31 @@ class Server(Thread):
         c = self.read()
         print c
         return c
-
+    
     def run(self):
+        data_size = 8
         self.get_file_data()
         self.serial.open()
         offs = 0
         lng = len(self.data)
-        while lng > 256:
+        print "data len %d" % lng
+        while lng > data_size:
             while(self.get_prompt()!="@"):
                 pass
 
-            self.write(self.data[offs:offs + 256])
-            offs = offs + 256
-            lng = lng - 256
+            self.write(self.data[offs:offs + data_size])
+            offs = offs + data_size
+            lng = lng - data_size
 
-        while (self.read() != "@"):
+        while (self.get_prompt() != "@"):
             pass
-        self.write(self.data[offs:offs + lng] + ([0xFF] * (256 - lng)))
+        self.write(self.data[offs:offs + lng] + (chr(0xFF) * (data_size - lng)))
         time.sleep(0.1)
-        self.write('stop!!')
+        self.write('stop!!!!')
+		
+if __name__ == "__main__":
+	from IPython import embed
+	embed()
 
 
 

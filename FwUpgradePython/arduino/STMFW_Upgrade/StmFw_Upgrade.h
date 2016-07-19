@@ -22,10 +22,10 @@ int extendedErase;
 typedef struct uart_handlers_t {
   unsigned char (*uart_read_ptr)(void);
   void (*uart_reads_ptr)(unsigned char* buff, int len);
-  void (*uart_write_ptr)(const unsigned char* buff, int len);
+  void (*uart_write_ptr)(const char* buff, int len);
   void (*debug_write_ptr)(const char * buff);
   void (*delay_ptr)(long unsigned int ms);
-  void (*debug_reads_ptr)(unsigned char* data, int len);
+  void (*debug_reads_ptr)(char* data, int len);
 } uart_handlers_t;
 
 uart_handlers_t uartHandlers;
@@ -81,10 +81,10 @@ int cmdGetID(void);
 void encode_addr(unsigned long addr, unsigned char * addr_buffer);
 void cmdReadMemory(unsigned long addr, int lng, unsigned char * data);
 void cmdGo(unsigned long addr);
-void cmdWriteMemory(unsigned long addr, unsigned char *data);
+void cmdWriteMemory(unsigned long addr, unsigned char *data, int len);
 void cmdExtendedEraseMemory(void);
-void cmdEraseMemory(unsigned char * sectors);
-void cmdWriteProtect(unsigned char * sectors);
+void cmdEraseMemory(unsigned char * sectors, int secLen);
+void cmdWriteProtect(unsigned char * sectors, int secLen);
 void cmdReadoutProtect(void);
 void cmdReadoutUnprotect(void);
 int readMemory(void);

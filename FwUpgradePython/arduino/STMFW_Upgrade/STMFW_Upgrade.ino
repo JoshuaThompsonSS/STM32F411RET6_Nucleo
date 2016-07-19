@@ -31,10 +31,9 @@ extern "C"{
 #include "StmFw_Upgrade.h"
 };
 
-SoftwareSerial mySerial(0, 1); // RX, TX
 unsigned char * buff = (unsigned char *)malloc(sizeof(unsigned char)*100);
 
-void serial_write(const unsigned char * buff, int len){
+void serial_write(const char * buff, int len){
   Serial1.write((const char *)buff, len);
 }
 
@@ -59,9 +58,10 @@ uart_handlers_t uartPtrs = {&serial_read, &serial_reads, &serial_write, &debug_w
 
 
 void setup() {
-  load_uart_handlers(&uartPtrs);
+  
   // Open serial communications and wait for port to open:
-  Serial.begin(115200);
+  Serial.begin(9600);
+  Serial.setTimeout(5000);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
@@ -70,23 +70,42 @@ void setup() {
   Serial.println("Goodnight moon!");
 
   // set the data rate for the SoftwareSerial port
-  Serial1.begin(115200, SERIAL_8E1);
+  delay(2000);
+  Serial1.begin(9600, SERIAL_8E1);
   Serial1.setTimeout(5000); //5 sec timeout
 
   strcpy((char *)buff,"Hello Josh");
+  load_uart_handlers(&uartPtrs);
   
 }
 
 void loop() { // run over and over
-  initChip();
-  int ver = cmdGet(); //this will update erase memory type
+    upgradeFW();
+}
+
+void upgradeFW(void){
   unsigned long addr = 0x08000000;
-  cmdEraseMemory(NULL);
+  initChip();
+  unsigned long i = 0;
+  unsigned char * data =  (unsigned char *)malloc(sizeof(unsigned char)*16);
+  while(1){
+  //char ver = cmdGet();
+  //Serial.println("version ");
+  //Serial.println(ver, HEX);
+  delay(100);
+  cmdWriteMemory(addr, data, 4);
+  addr = addr + 4;
+  }
+ 
+  cmdEraseMemory(NULL, 0);
+  delay(100);
   writeMemory(addr);
   //memVerify();
   while(1){
     Serial.println("STM FW Upgrade complete ");
     delay(2000);
   }
+  
 }
+
 

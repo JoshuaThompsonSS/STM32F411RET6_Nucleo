@@ -13,7 +13,7 @@ Date Created: 07/22/2016
 #include <string.h>
         
 error_status_t errorStatus = {0, 0, 0, 0};
-
+int data_size = 4;
 
 /* TODO: add string names to name attribute */
 /* This struct isn't used at the moment but it can be used to verify the chip we are communicating with is correct */
@@ -33,23 +33,30 @@ chipIDs.stm32F4xx.id = 0x413;
 
 /* Handle error */
 void handle_error(error_status_type_t error_type){
+  char error[100];
   switch(error_type){
     case NACK_ERROR:
+      strcpy(error, "nack error");
       errorStatus.nack = 1;
       break;
     case TIMEOUT_ERROR:
+      strcpy(error, "timeout error");
       errorStatus.timeout = 1;
       break;
     case DATA_LEN_ERROR:
+      strcpy(error, "data len error");
       errorStatus.data_len = 1;
       break;
     case UNKNOWN_ERROR:
+      strcpy(error, "unknown error");
       errorStatus.unknown = 1;
       break;
     default:
+      strcpy(error, "unknown error");
       errorStatus.unknown = 1;
       break;
   }
+  mdebug(0, error);
 }
 
 /* dummy time sleep */
@@ -141,7 +148,8 @@ void open_uart(void){
 /* Wait for nack or ack response */
 int wait_for_ask(void){
     /* wait for ask */
-    char ask = uart_read();
+    time_sleep(0.2); //need this in here :(
+    unsigned char ask = uart_read();
     /* TODO: what to do if timeout? */
     if(uart_timeout()){
         /* Timeout handler here */
@@ -157,7 +165,7 @@ int wait_for_ask(void){
             if(ask == 0x1F){
                 /* NACK */
                 /* TODO: how are we going to handle nack? */
-        handle_error(NACK_ERROR);
+                handle_error(NACK_ERROR);
                 return 0;
             }
             else{
@@ -184,7 +192,16 @@ int initChip(void){
     reset();
   unsigned char cmd[] = {0x7F};
     uart_write(cmd, 1);       /* tell bootloader to startup */
-    return wait_for_ask();
+    time_sleep(0.1); //need this for some reason
+    int ok = wait_for_ask();
+    if(ok){
+      mdebug(0, "init success");
+    }
+    else{
+      mdebug(0, "init failed");
+    }
+
+    return ok;
 }
 
 void releaseChip(void){
@@ -194,35 +211,41 @@ void releaseChip(void){
 
 /* Generic cmd routine - use this for high level cmds */
 int cmdGeneric(unsigned char c){
-  unsigned char cmd[1];
+  unsigned char cmd[2];
   cmd[0] = c;
-    uart_write(cmd, 1);
-  cmd[0] = c ^ 0xFF;
-    uart_write(cmd, 1); /* Control cmd byte */
-    return wait_for_ask();
+  cmd[1] = c ^ 0xFF;
+  uart_write(cmd, 2); /* Control cmd byte */
+  time_sleep(0.01);
+  return wait_for_ask();
 }
 
 /* Get the number of cmd available and version num */
 char cmdGet(void){
     if(cmdGeneric(0x00)){
-        mdebug(10, "*** Get command");
         unsigned char len = uart_read();
-        unsigned char version = uart_read();
-        mdebug(10, "    Bootloader version: "); /* TODO: print version num ? */
-        unsigned char * buff = (unsigned char *) malloc(sizeof(unsigned char) * len);
+        unsigned char ver = uart_read();
+        unsigned char * buff = (unsigned char *) malloc(sizeof(unsigned char) * (len+1));
         uart_reads(buff, len);
+        buff[len] = '\0';
+        
+        
         for(int i=0; i<len; i++){
             if(0x44 == buff[i]){
                 extendedErase = 1;
             }
         }
-        mdebug(10, "    Available commands"); /* TODO: show available cmds */
-        wait_for_ask();
-        return version;
+        time_sleep(0.1);
+        int ok = wait_for_ask();
+        /*
+        if(ok){mdebug(0, "cmd get ok\n");}
+        else {mdebug(0, "cmd get failed\n");}
+        */
+        
+        return ver;
     }
     else{
         /* TODO: what to do if receive nack? */
-    handle_error(NACK_ERROR);
+        handle_error(NACK_ERROR);
         return 0;
     }
 }
@@ -278,7 +301,7 @@ void encode_addr(unsigned long addr, unsigned char * addr_buffer){
 
 
 void cmdReadMemory(unsigned long addr, int lng, unsigned char * data){
-    if(!(lng <= 256)){
+    if(lng > data_size){
     handle_error(DATA_LEN_ERROR);
         return;
   } /* TODO: handler assert error */
@@ -319,37 +342,40 @@ void cmdGo(unsigned long addr){
     }
 }
 
-void cmdWriteMemory(unsigned long addr, unsigned char *data){
-    if(!(strlen((char*)data) <= 256)){ 
-    handle_error(DATA_LEN_ERROR);
-        return;
-  }
+void cmdWriteMemory(unsigned long addr, unsigned char *data, int len){
   
+    if(len > data_size){ 
+        handle_error(DATA_LEN_ERROR);
+        return;
+    }
     if(cmdGeneric(0x31)){
-        mdebug(10, "*** Write memory command");
+        //mdebug(10, "*** Write memory command");
         unsigned char * addr_buffer = (unsigned char *) malloc(sizeof(unsigned char)*5);
         encode_addr(addr, addr_buffer); /* Get addr and crc buffer */
         uart_write(addr_buffer, 5);
         wait_for_ask();
-        int lng = (strlen((char *)data)-1) & 0xFF;
-        mdebug(10, "    %s bytes to write"); /* TODO: debug ? */
+        int lng = len-1; //(strlen((char *)data)-1) & 0xFF;
+        //mdebug(10, "    %s bytes to write"); /* TODO: debug ? */
         unsigned char length_data[1];
         length_data[0] = lng;
         uart_write(length_data, 1); /* len really */
-        unsigned char crc[] = {0xFF};
+        unsigned char crc[] = {lng};
         unsigned char c[1];
         for(int i = 0; i <= lng; i++){
             c[0] = data[i];
             crc[0] = crc[0] ^ c[0];
-            uart_write(c, 1);
+            //uart_write(c, 1);
         }
+        uart_write(data, len);
         uart_write(crc, 1);
-
+        
+        //mdebug(0, "last ack");
         wait_for_ask();
-        mdebug(10, "    Write memory done");
+        //mdebug(10, "    Write memory done");
     }
     else{
         /* TODO: handle nack */
+    mdebug(0, "write cmd not accepted");
     handle_error(NACK_ERROR);
     }
 }
@@ -365,7 +391,8 @@ void cmdExtendedEraseMemory(void){
         cmd[0] = 0x00;
         uart_write(cmd, 1);
         int tmp = get_uart_timeout();
-        set_uart_timeout(30);
+        //set_uart_timeout(30);
+        time_sleep(10); //can take 30 sec
         /* Extended erase (0x44), can take ten seconds or more */
         wait_for_ask();
         set_uart_timeout(tmp); /* set back to default */
@@ -378,8 +405,9 @@ void cmdExtendedEraseMemory(void){
 }
 
 
-void cmdEraseMemory(unsigned char * sectors){
+void cmdEraseMemory(unsigned char * sectors, int secLen){
     if(extendedErase){
+        mdebug(0, "Cmd extended erase memory");
         cmdExtendedEraseMemory();
         return;
   }
@@ -388,45 +416,46 @@ void cmdEraseMemory(unsigned char * sectors){
         mdebug(10, "*** Erase memory command");
         if(sectors == NULL){
             /* Global erase */
-      unsigned char cmd[] = {0xFF};
+            unsigned char cmd[] = {0xFF};
             uart_write(cmd, 1);
-      cmd[0] = 0x00;
+            cmd[0] = 0x00;
             uart_write(cmd, 1);
-    }
+        }
         else{
             /* Sectors erase */
-      unsigned char cmd[1];
-      cmd[0] = (strlen((char *)sectors)-1) & 0xFF;
+            unsigned char cmd[1];
+            cmd[0] = secLen -1; //(strlen((char *)sectors)-1) & 0xFF;
             uart_write(cmd, 1);
             unsigned char crc[] = {0xFF};
-      unsigned char c[1];
-            for(int i = 0; i<strlen((char *)sectors); i++){
-        c[0] = sectors[i];
+            unsigned char c[1];
+            for(int i = 0; i<secLen; i++){
+                c[0] = sectors[i];
                 crc[0] = crc[0] ^ c[0];
                 uart_write(c, 1);
-      }
+            }
             uart_write(crc, 1);
-      wait_for_ask();
-      mdebug(10, "    Erase memory done");
+            wait_for_ask();
+            mdebug(10, "    Erase memory done");
     }
   }
-    else{
+  else{
         /* TODO: handle nack */
+    mdebug(10, "*** Erase memory command failed");
     handle_error(NACK_ERROR);
   }
 }
 
 
 
-void cmdWriteProtect(unsigned char * sectors){
+void cmdWriteProtect(unsigned char * sectors, int secLen){
     if(cmdGeneric(0x63)){
         mdebug(10, "*** Write protect command");
     unsigned char cmd[1];
-    cmd[0] = (strlen((char *)sectors)-1) & 0xFF;
+    cmd[0] = secLen-1; //(strlen((char *)sectors)-1) & 0xFF;
         uart_write(cmd, 1);
         unsigned char crc[] = {0xFF};
     unsigned char c[1];
-    int len = strlen((char *)sectors);
+    int len = secLen;//strlen((char *)sectors);
         for(int i = 0; i<len; i++){
       c[0] = sectors[i];
             crc[0] = crc[0] ^ c[0];
@@ -494,21 +523,22 @@ int writeMemory(unsigned long addr){
   /* TODO: write all data of image from flash to stm32 */
   /* return 1 if successful and 0 if not */
   int offs = 0;
-  unsigned char * data = (unsigned char *)malloc(sizeof(unsigned char)*256);
+  unsigned char * data =  (unsigned char *)malloc(sizeof(unsigned char)*data_size);
   
   int complete = 0;
   while(!complete){
-      mdebug(0, "@") //informs python server to send data bytes
-      debug_read(data,256);
+      mdebug(0, "@"); //informs python server to send data bytes
+      debug_read(data,data_size);
+      //mdebug(0, "Got data");
       if(data[0] == 's' && data[1] == 't' && data[2] == 'o' && data[3] == 'p' && data[4] == '!' && data[5] == '!'){
         //complete!
-        return;
+        return 0;
       }
-      mdebug(5, "Write bytes");
-      cmdWriteMemory(addr, data);
-      offs = offs + 256;
-      addr = addr + 256;
+      //mdebug(5, "Write bytes");
+      cmdWriteMemory(addr, data, data_size);
+      addr = addr + data_size;
   }
+  mdebug(0, "Write Complete");
 
   return 0;
 }

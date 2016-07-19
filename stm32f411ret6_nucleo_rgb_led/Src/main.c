@@ -116,7 +116,7 @@ void Init_USART1(void){
 	UART1_InitStructure.HwFlowCtl = UART_HWCONTROL_NONE;
 	/* Configure USART */
 	UART1_Handle.Instance = USART1;
-	UART1_Handle.Init = UART_InitStructure;
+	UART1_Handle.Init = UART1_InitStructure;
 	/* Init and Enable the USART */
 	HAL_UART_Init(&UART1_Handle);
 
@@ -529,17 +529,6 @@ int main(void)
   //sleepModeTest();
   //sleepModeTestWithTimer();
   //standbyModeTest();
-  Init_USART(); //USART2
-  Init_USART1(); //USART1 PA9 (TX) and PA10 (RX)
-  wait_sec(1);
-  char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
-  uint8_t nums[] = {0x7F};
- HAL_UART_Transmit(&UART1_Handle, (uint8_t*)nums, 1, 0xFFFF);
- wait_sec(0.1);
- HAL_UART_Receive(&UART1_Handle, (uint8_t*)rxMsg, 1, 0xFFFF);
- if(rxMsg[0] == 0x79){
-	 toggleLED();
- }
 
   while (1)
   {

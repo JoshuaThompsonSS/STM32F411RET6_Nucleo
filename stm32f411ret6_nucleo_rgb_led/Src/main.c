@@ -54,7 +54,9 @@ TIM_HandleTypeDef LEDTimHandle;
 GPIO_InitTypeDef  GPIO_InitStruct;
 
 UART_InitTypeDef UART_InitStructure;
+UART_InitTypeDef UART1_InitStructure;
 UART_HandleTypeDef UART_Handle;
+UART_HandleTypeDef UART1_Handle;
 rgb_seq_type_t rgbLedOn = RGBSEQ_ON;
 rgb_seq_type_t rgbLedOff = RGBSEQ_OFF;
 char *msg = "Hello Nucleo Fun!\n\r";
@@ -103,6 +105,21 @@ UART_Handle.Init = UART_InitStructure;
 HAL_UART_Init(&UART_Handle);
 
 //__HAL_USART_ENABLE(&USART_Handle);
+}
+
+void Init_USART1(void){
+	UART1_InitStructure.BaudRate = 9600;
+	UART1_InitStructure.WordLength = UART_WORDLENGTH_8B;
+	UART1_InitStructure.StopBits = UART_STOPBITS_1;
+	UART1_InitStructure.Parity = UART_PARITY_EVEN;
+	UART1_InitStructure.Mode = UART_MODE_TX_RX;
+	UART1_InitStructure.HwFlowCtl = UART_HWCONTROL_NONE;
+	/* Configure USART */
+	UART1_Handle.Instance = USART1;
+	UART1_Handle.Init = UART_InitStructure;
+	/* Init and Enable the USART */
+	HAL_UART_Init(&UART1_Handle);
+
 }
 
 //Initialize timer used to generate interrupt
@@ -501,24 +518,42 @@ int main(void)
   SystemClock_Config();
 
   /* Initialize LED*/
-  //initLED();
+  initLED();
 
   /* Initialize Button Interrupt */
   //initButtonInterrupt();
   //wait_sec(1);
 
   //InitRGBCmd(); //init uart, rgb led driver and services
-  stopModeTest();
+  //stopModeTest();
   //sleepModeTest();
   //sleepModeTestWithTimer();
   //standbyModeTest();
-
+  Init_USART(); //USART2
+  Init_USART1(); //USART1 PA9 (TX) and PA10 (RX)
+  wait_sec(1);
+  char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
+  uint8_t nums[] = {0x7F};
+ HAL_UART_Transmit(&UART1_Handle, (uint8_t*)nums, 1, 0xFFFF);
+ wait_sec(0.1);
+ HAL_UART_Receive(&UART1_Handle, (uint8_t*)rxMsg, 1, 0xFFFF);
+ if(rxMsg[0] == 0x79){
+	 toggleLED();
+ }
 
   while (1)
   {
 	//CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
-	 //toggleLED();
-	 //wait_sec(1);
+
+	 wait_sec(1);
+	 /*
+	 char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
+	 HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 1, 0xFFFF);
+	 if(rxMsg[0]=='J'){
+		 toggleLED();
+	 }
+	 */
+
 
   }
 
@@ -715,25 +750,49 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 void HAL_UART_MspInit(UART_HandleTypeDef *husart){
 	// sort out clocks
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_USART2_CLK_ENABLE();
+	if(husart->Instance == USART2){
+		__HAL_RCC_GPIOA_CLK_ENABLE();
+		__HAL_RCC_USART2_CLK_ENABLE();
 
-	/* Configure USART2 Tx (PA.02) and RX (PA.03) as alternate function push-pull */
-	GPIO_InitTypeDef  GPIO_TX_InitStructure;
-	GPIO_TX_InitStructure.Pin = GPIO_PIN_2;
-	GPIO_TX_InitStructure.Speed = GPIO_SPEED_LOW;
-	GPIO_TX_InitStructure.Mode = GPIO_MODE_AF_PP;
-	GPIO_TX_InitStructure.Pull = GPIO_PULLUP;
-	GPIO_TX_InitStructure.Alternate = GPIO_AF7_USART2;
-	HAL_GPIO_Init(GPIOA, &GPIO_TX_InitStructure);// Map USART2 TX to A.02
+		/* Configure USART2 Tx (PA.02) and RX (PA.03) as alternate function push-pull */
+		GPIO_InitTypeDef  GPIO_TX_InitStructure;
+		GPIO_TX_InitStructure.Pin = GPIO_PIN_2;
+		GPIO_TX_InitStructure.Speed = GPIO_SPEED_LOW;
+		GPIO_TX_InitStructure.Mode = GPIO_MODE_AF_PP;
+		GPIO_TX_InitStructure.Pull = GPIO_PULLUP;
+		GPIO_TX_InitStructure.Alternate = GPIO_AF7_USART2;
+		HAL_GPIO_Init(GPIOA, &GPIO_TX_InitStructure);// Map USART2 TX to A.02
 
-	GPIO_InitTypeDef  GPIO_RX_InitStructure;
-	GPIO_RX_InitStructure.Pin = GPIO_PIN_3;
-	GPIO_RX_InitStructure.Speed = GPIO_SPEED_LOW;
-	GPIO_RX_InitStructure.Mode = GPIO_MODE_AF_PP;
-	GPIO_RX_InitStructure.Pull = GPIO_PULLUP;
-	GPIO_RX_InitStructure.Alternate = GPIO_AF7_USART2;
-	HAL_GPIO_Init(GPIOA, &GPIO_RX_InitStructure);// Map USART2 RX to A.02
+		GPIO_InitTypeDef  GPIO_RX_InitStructure;
+		GPIO_RX_InitStructure.Pin = GPIO_PIN_3;
+		GPIO_RX_InitStructure.Speed = GPIO_SPEED_LOW;
+		GPIO_RX_InitStructure.Mode = GPIO_MODE_AF_PP;
+		GPIO_RX_InitStructure.Pull = GPIO_PULLUP;
+		GPIO_RX_InitStructure.Alternate = GPIO_AF7_USART2;
+		HAL_GPIO_Init(GPIOA, &GPIO_RX_InitStructure);// Map USART2 RX to A.02
+	}
+
+	if(husart->Instance == USART1){
+			__HAL_RCC_GPIOA_CLK_ENABLE();
+			__HAL_RCC_USART1_CLK_ENABLE();
+
+			/* Configure USART2 Tx (PA.010) and RX (PA.09) as alternate function push-pull */
+			GPIO_InitTypeDef  GPIO_TX_InitStructure;
+			GPIO_TX_InitStructure.Pin = GPIO_PIN_9;
+			GPIO_TX_InitStructure.Speed = GPIO_SPEED_LOW;
+			GPIO_TX_InitStructure.Mode = GPIO_MODE_AF_PP;
+			GPIO_TX_InitStructure.Pull = GPIO_PULLUP;
+			GPIO_TX_InitStructure.Alternate = GPIO_AF7_USART1;
+			HAL_GPIO_Init(GPIOA, &GPIO_TX_InitStructure);// Map USART2 TX to A.09
+
+			GPIO_InitTypeDef  GPIO_RX_InitStructure;
+			GPIO_RX_InitStructure.Pin = GPIO_PIN_10;
+			GPIO_RX_InitStructure.Speed = GPIO_SPEED_LOW;
+			GPIO_RX_InitStructure.Mode = GPIO_MODE_AF_PP;
+			GPIO_RX_InitStructure.Pull = GPIO_PULLUP;
+			GPIO_RX_InitStructure.Alternate = GPIO_AF7_USART1;
+			HAL_GPIO_Init(GPIOA, &GPIO_RX_InitStructure);// Map USART2 RX to A.010
+		}
 }
 
 /* USER CODE END 4 */

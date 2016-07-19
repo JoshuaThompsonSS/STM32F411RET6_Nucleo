@@ -740,16 +740,8 @@ HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData, ui
         if(huart->Init.Parity == UART_PARITY_NONE)
         {
           //HACK
-          data = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FFU); //this is part of the HACK
-           *pData++ = data; //*pData++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FFU);
-          //HACK: stop reading when pData == NULL character
-          if(data== '\n'){
-        	  //for some reason data=='\0' does not work...
-        	  break;
-          }
+         *pData++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FFU);
 
-
-          //*pData++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FFU);
         }
         else
         {

@@ -171,7 +171,7 @@ int wait_for_ask(void){
             else{
                 /* Unknown response */
                 /* TODO: how are we going to handle unknown response */
-        handle_error(UNKNOWN_ERROR);
+            	handle_error(UNKNOWN_ERROR);
                 return 0;
             }
         }

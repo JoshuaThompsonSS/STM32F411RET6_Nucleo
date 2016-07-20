@@ -72,6 +72,11 @@ void uart1_putc(uint8_t c){
 	HAL_UART_Transmit(&UART1_Handle, d, 1, 0xFFFF);
 }
 
+void uart1_puts(uint8_t * buff, int len){
+
+	HAL_UART_Transmit(&UART1_Handle, buff, len, 0xFFFF);
+}
+
 uint8_t uart1_getc(void){
 	uint8_t d[1];
 	HAL_UART_Receive(&UART1_Handle, (uint8_t*)d, 1, 0xFFFF);
@@ -95,9 +100,12 @@ uint8_t uart2_getc(void){
 }
 
 void serial_write(const char * buff, int len){
+	/*
   for(int i = 0; i<len; i++){
 	  	  uart1_putc(buff[i]);
       }
+      */
+  uart1_puts(buff, len);
 }
 
 unsigned char serial_read(void){
@@ -116,7 +124,6 @@ void serial_reads(unsigned char* buff, int len){
 }
 
 void host_write(const char * buff){
-	return;
 	int len = strlen(buff); //buff must be null terminated
 	for(int i = 0; i<len; i++){
 		  	  uart2_putc(buff[i]);
@@ -154,9 +161,9 @@ HAL_UART_Init(&UART_Handle);
 
 void Init_USART1(void){
 	UART1_InitStructure.BaudRate = 9600;
-	UART1_InitStructure.WordLength = UART_WORDLENGTH_8B;
+	UART1_InitStructure.WordLength = UART_WORDLENGTH_9B; //UART_WORDLENGTH_8B
 	UART1_InitStructure.StopBits = UART_STOPBITS_1;
-	UART1_InitStructure.Parity = UART_PARITY_NONE;//UART_PARITY_EVEN;
+	UART1_InitStructure.Parity = UART_PARITY_EVEN;
 	UART1_InitStructure.Mode = UART_MODE_TX_RX;
 	UART1_InitStructure.HwFlowCtl = UART_HWCONTROL_NONE;
 	/* Configure USART */
@@ -219,7 +226,55 @@ int main(void)
   initLED();
 
   setup();
+  wait_sec(5);
+  uint8_t start[] = {0x7F};
+  HAL_UART_Transmit(&UART1_Handle, start, 1, 0xFFFF);
+  uint8_t resp[] = {0};
+  HAL_UART_Receive(&UART1_Handle, resp, 1, 0xFFFF);
+  if(resp[0] == 0x79){
+	  host_write("start ok \n");
+  }
+  else{
+	  host_write("start not ok\n");
+  }
+
+  uint8_t get[] = {0x00, 0xFF};
+  HAL_UART_Transmit(&UART1_Handle, get, 2, 0xFFFF);
+  uint8_t getresp[] = {0};
+  HAL_UART_Receive(&UART1_Handle, getresp, 1, 0xFFFF);
+  if(getresp[0] == 0x79){
+  	  host_write("start ok \n");
+    }
+    else{
+  	  host_write("start not ok\n");
+   }
   wait_sec(1);
+
+   HAL_UART_Receive(&UART1_Handle, getresp, 1, 0xFFFF);
+   char data[2] = {getresp[0], 0};
+   host_write("got len \n");
+   host_write(data);
+   wait_sec(1);
+   HAL_UART_Receive(&UART1_Handle, getresp, 1, 0xFFFF);
+   host_write("got ver \n");
+   data[0] = getresp[0];
+   host_write(data);
+   wait_sec(1);
+   for(int i = 0; i<11; i++){
+	   HAL_UART_Receive(&UART1_Handle, getresp, 1, 0xFFFF);
+	     host_write("got data \n");
+   }
+   HAL_UART_Receive(&UART1_Handle, getresp, 1, 0xFFFF);
+    if(getresp[0] == 0x79){
+    	  host_write("get end ok \n");
+      }
+      else{
+    	  host_write("get end not ok\n");
+     }
+
+
+
+
   /*
   char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
   uint8_t nums[] = {0x7F};
@@ -231,28 +286,24 @@ int main(void)
   }
   */
   wait_sec(5);
+  /*
   host_write("Getting init chip\n");
   initChip();
   wait_sec(1);
-  /*
+
   int ver = cmdGet();
   if(ver==0x31){
 	  host_write("Get cmd ok\n");
   }
-  wait_sec(1);
-  */
-  //int ok = cmdGetVersion();//cmdGeneric(0x00);
-  wait_sec(1);
-  if(0){
-	  //host_write("cmd get send ok\n");
-	  //int len = uart1_getc();
-	  //int ver = uart1_getc();
-	  host_write("got ver and lend");
-
-  }
   else{
-	  host_write("cmd get send failed\n");
+	  char d[] = {0,0};
+	  d[0] = ver;
+	  host_write("Get cmd failed and got");
+	  host_write(d);
   }
+  wait_sec(1);
+ */
+
 
   while (1)
   {
@@ -260,7 +311,7 @@ int main(void)
 	 wait_sec(2);
 	 toggleLED();
 	 //host_write("Starting init chip\n");
-	 mdebug(0, "Starting init chip\n");
+	 //mdebug(0, "Starting init chip\n");
 	 /*
 	 char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
 	 HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 1, 0xFFFF);
@@ -341,6 +392,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *husart){
 
 	if(husart->Instance == USART1){
 			__HAL_RCC_GPIOA_CLK_ENABLE();
+			//__HAL_RCC_GPIOA_CLK_ENABLE();
 			__HAL_RCC_USART1_CLK_ENABLE();
 
 			/* Configure USART2 Tx (PA.010) and RX (PA.09) as alternate function push-pull */

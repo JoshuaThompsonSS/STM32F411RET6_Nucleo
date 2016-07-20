@@ -739,7 +739,6 @@ HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData, ui
         }
         if(huart->Init.Parity == UART_PARITY_NONE)
         {
-          //HACK
          *pData++ = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FFU);
 
         }

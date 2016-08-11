@@ -31,6 +31,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/startup_stm32f411xe.s</locationURI>
 		</link>
 		<link>
+			<name>Application/User/StmFw_Upgrade.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Src/StmFw_Upgrade.c</locationURI>
+		</link>
+		<link>
 			<name>Application/User/gpio.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/gpio.c</locationURI>
@@ -49,6 +54,11 @@
 			<name>Application/User/stm32f4xx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Src/stm32f4xx_it.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/BSP/functional_rgb_led.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/BSP/Src/functional_rgb_led.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/rgb_led.c</name>
@@ -129,6 +139,11 @@
 			<name>Drivers/STM32F4xx_HAL_Driver/stm32f4xx_hal_tim_ex.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32F4xx_HAL_Driver/stm32f4xx_hal_uart.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

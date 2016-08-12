@@ -66,6 +66,11 @@
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/BSP/Src/bq27542.c</locationURI>
 		</link>
 		<link>
+			<name>Drivers/BSP/tlc59116.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/BSP/Src/tlc59116.c</locationURI>
+		</link>
+		<link>
 			<name>Drivers/CMSIS/system_stm32f4xx.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c</locationURI>

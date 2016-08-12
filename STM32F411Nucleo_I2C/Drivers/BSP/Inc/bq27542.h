@@ -79,8 +79,7 @@
 
 
 #define ATRATE_MA            -100           // USER CONFIG: AtRate setting (mA)
-#define I2CSLAVEADDR         0xAA           // 0xAA = 0x55 << 1 = 7-bit slave address
-#define BUFFERSIZE             32           // # of bytes for Tx & Rx buffers
+#define bq27542_ADDR         0xAA           // 0xAA = 0x55 << 1 = 7-bit slave address
 /*
 extern UINT8 Message[RANDMESGNUMBYTES]; // random message sent to the bq device
 extern UINT8 Key[SECRETKEYNUMBYTES]; // secret key - should match contents of bq
@@ -91,8 +90,8 @@ UINT8 DeviceID[DEVICEIDNUMBYTES];           // Stores the Device ID data
 UINT8 Digest[DIGESTNUMBYTES];               // SHA1 response from the bq27542
 */
 
-unsigned char TxData[BUFFERSIZE];           // Stores data bytes to be TX'd
-unsigned char RxData[BUFFERSIZE];           // Stores data bytes that are RX'd
+unsigned char TxData[I2C_BUFFERSIZE];           // Stores data bytes to be TX'd
+unsigned char RxData[I2C_BUFFERSIZE];           // Stores data bytes that are RX'd
 unsigned int  temperature;                  // Stores temperature
 unsigned int  voltage;                      // Stores voltage
   signed int  atrate;                       // Stores AtRate
@@ -103,7 +102,6 @@ unsigned int  dnamelen;                     // Stores Device Name Length
 
 
 //Function Declarations
-unsigned int transBytes2UnsignedInt(unsigned char msb, unsigned char lsb);
 void BQ27542_read(unsigned char cmd, unsigned int bytes);
 void BQ27542_cmdWrite(unsigned char cmd, unsigned char data);
 void BQ27542_blockWrite(unsigned char *buffer, unsigned int length);

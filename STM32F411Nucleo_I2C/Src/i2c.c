@@ -4,7 +4,7 @@
  */
 #include "i2c.h"
 
-/* I2C1 init function */
+/*********** I2C1 init function *******************************/
 void MX_I2C1_Init(void)
 {
 
@@ -19,6 +19,15 @@ void MX_I2C1_Init(void)
   hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   HAL_I2C_Init(&hi2c1);
 
+}
+
+/*************** Generic functions ******************************/
+unsigned int transBytes2UnsignedInt(unsigned char msb, unsigned char lsb)
+{
+  unsigned int tmp;
+
+  tmp = ((msb << 8) & 0xFF00);
+  return ((unsigned int)(tmp + lsb) & 0x0000FFFF);
 }
 
 

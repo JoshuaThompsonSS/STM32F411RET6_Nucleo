@@ -38,9 +38,6 @@
 #include <string.h>
 
 
-#define WHO_AM_I_MPU6050 			0x75U // Should return 0x68
-#define MPU6050_ADDRESS 			0x68U<<1  // Device address when ADO = 0
-
 /* Variables ---------------------------------------------------------*/
 
 UART_HandleTypeDef huart1;
@@ -81,11 +78,6 @@ void toggleLED(void){
 
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
   /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -99,47 +91,18 @@ int main(void)
   MX_I2C1_Init();
   MX_USART2_UART_Init();
 
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   initLED();
   while (1)
   {
-	  // Read bq27542 registers in a loop
-	    uint16_t temp = BQ27542_getTemperature();
-	    uint16_t devType = BQ27542_getDeviceType();
-	    uint16_t unfSoc = BQ27542_getUnfilteredSOC();
-	    uint16_t voltage = BQ27542_getVoltage();
-	    uint16_t nomCap = BQ27542_getNomAvailableCapacity();
-	    uint16_t fullCap = BQ27542_getFullAvailableCapacity();
-	    uint16_t remCap = BQ27542_getRemainingCapacity();
-	    uint16_t chrgCap = BQ27542_getFullChargeCapacity();
-	    uint16_t aveCurrent = BQ27542_getAverageCurrent();
-	    uint16_t emptyTime = BQ27542_getTimeToEmpty();
-	    uint16_t chrgCapFilt = BQ27542_getFullChargeCapacityFiltered();
-	    uint16_t chrgCapUnfilt = BQ27542_getFullChargeCapacityUnfiltered();
-	    uint16_t imax = BQ27542_getImax();
-	    uint16_t remCapUnfilt = BQ27542_getRemainingCapacityUnfiltered();
-	    uint16_t remCapFilt = BQ27542_getRemainingCapacityFiltered();
-	    uint16_t intTemp = BQ27542_getInternalTemperature();
-	    uint16_t cycleCount = BQ27542_getCycleCount();
-	    uint16_t soc = BQ27542_getStateOfCharge();
-	    uint16_t soh = BQ27542_getStateOfHealth();
-	    uint16_t cv = BQ27542_getChargingVoltage();
-	    uint16_t cc = BQ27542_getChargingCurrent();
-	    uint16_t passedChrg = BQ27542_getPassedCharge();
-	    uint16_t dOd0 = BQ27542_getDOD0();
-	    uint16_t disCrnt = BQ27542_getSelfDischargeCurrent();
-	    int x = 0;
-
 
 
   }
 
 }
+
+
+/*********************************Function Definitions*************************************/
+
 
 /** System Clock Configuration
 */

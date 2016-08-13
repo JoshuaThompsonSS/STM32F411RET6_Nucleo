@@ -11,6 +11,8 @@
 uint8_t Power_Up_Register_Values[Control_Register_Max+1];
 uint8_t shadow_registers[Control_Register_Max+1];
 
+tlc59116_register_controller_t tlcHandler;
+
 
 /*******************************Function Definitions*********************************/
 
@@ -49,16 +51,6 @@ void TLC59116_read(unsigned char cmd, unsigned int bytes)
 
 }
 
-void TLC59116_cmdWrite(unsigned char cmd, unsigned char data)
-{
-  unsigned char tx[2];
-  tx[0] = cmd;
-  tx[1] = data;
-  if(HAL_I2C_Master_Transmit(&hi2c1, TLC59116BaseAddr, tx, 2, 0xFFFF) != HAL_OK){
-	  TLC59116_error();
-  }
-
-}
 
 int TLC59116_blockWrite(unsigned char *buffer, unsigned int length)
 {
@@ -81,6 +73,92 @@ void TLC59116_setPWM(int duty_cycle_percent, int channel){
 }
 
 /************************ TLC59116 Generic Functions ******************************/
+void TLC59116_init_register_controller(void){
+	tlcHandler.initialized = 1;
+
+	//Slave Device I2C Address and Reset
+	tlcHandler.device_address = TLC59116BaseAddr;
+	tlcHandler.reset_address = TLC59116Reset_Addr;
+	tlcHandler.reset_byte[0] = TLC59116Reset_Byte1;
+	tlcHandler.reset_byte[1] = TLC59116Reset_Byte2;
+
+	//MODE Registers
+	tlcHandler.mode[0].address = MODE0_Register;
+	tlcHandler.mode[1].address = MODE1_Register;
+
+	//PWM Registers
+	tlcHandler.channels = Channels;
+	tlcHandler.pwm[0].address = PWM0_Register;
+	tlcHandler.pwm[0].value = 0x00;
+	tlcHandler.pwm[1].address = PWM0_Register + 1;
+	tlcHandler.pwm[1].value = 0x00;
+	tlcHandler.pwm[2].address = PWM0_Register + 2;
+	tlcHandler.pwm[2].value = 0x00;
+	tlcHandler.pwm[3].address = PWM0_Register + 3;
+	tlcHandler.pwm[3].value = 0x00;
+	tlcHandler.pwm[4].address = PWM0_Register + 4;
+	tlcHandler.pwm[4].value = 0x00;
+	tlcHandler.pwm[5].address = PWM0_Register + 5;
+	tlcHandler.pwm[5].value = 0x00;
+	tlcHandler.pwm[6].address = PWM0_Register + 6;
+	tlcHandler.pwm[6].value = 0x00;
+	tlcHandler.pwm[7].address = PWM0_Register + 7;
+	tlcHandler.pwm[7].value = 0x00;
+	tlcHandler.pwm[8].address = PWM0_Register + 8;
+	tlcHandler.pwm[8].value = 0x00;
+	tlcHandler.pwm[9].address = PWM0_Register + 9;
+	tlcHandler.pwm[9].value = 0x00;
+	tlcHandler.pwm[10].address = PWM0_Register + 10;
+	tlcHandler.pwm[10].value = 0x00;
+	tlcHandler.pwm[11].address = PWM0_Register + 11;
+	tlcHandler.pwm[11].value = 0x00;
+	tlcHandler.pwm[12].address = PWM0_Register + 12;
+	tlcHandler.pwm[12].value = 0x00;
+	tlcHandler.pwm[13].address = PWM0_Register + 13;
+	tlcHandler.pwm[13].value = 0x00;
+	tlcHandler.pwm[14].address = PWM0_Register + 14;
+	tlcHandler.pwm[14].value = 0x00;
+	tlcHandler.pwm[15].address = PWM0_Register + 15;
+	tlcHandler.pwm[15].value = 0x00;
+
+	//Group PWM and Frequency Registers
+	tlcHandler.group_pwm.address = GRPPWM_Register;
+	tlcHandler.group_pwm.value = 0x00;
+	tlcHandler.group_freq.address = GRPFREQ_Register;
+	tlcHandler.group_freq.value = 0x00;
+
+	//LED Bank Registers
+	tlcHandler.ledout[0].address = LEDOUT0_Register;
+	tlcHandler.ledout[0].value = 0x00;
+	tlcHandler.ledout[1].address = LEDOUT0_Register + 1;
+	tlcHandler.ledout[1].value = 0x00;
+	tlcHandler.ledout[2].address = LEDOUT0_Register + 2;
+	tlcHandler.ledout[2].value = 0x00;
+	tlcHandler.ledout[3].address = LEDOUT0_Register + 3;
+	tlcHandler.ledout[3].value = 0x00;
+
+	//Subaddress Registers
+	tlcHandler.subaddr[0].address = SUBADR1_Register;
+	tlcHandler.subaddr[0].value = 0x00;
+	tlcHandler.subaddr[1].address = SUBADR2_Register;
+	tlcHandler.subaddr[1].value = 0x00;
+	tlcHandler.subaddr[2].address = SUBADR3_Register;
+	tlcHandler.subaddr[2].value = 0x00;
+
+	//Other Registers
+	tlcHandler.all_call.address = AllCall_Register;
+	tlcHandler.all_call.value = 0x00;
+	tlcHandler.iref.address = IREF_Register;
+	tlcHandler.iref.value = 0x00;
+	tlcHandler.eflag[0].address = EFLAG1_Register;
+	tlcHandler.eflag[0].value = 0x00;
+	tlcHandler.eflag[1].address = EFLAG2_Register;
+	tlcHandler.eflag[1].value = 0x00;
+
+
+
+}
+
 void TLC59116_reset_shadow_registers(void) {
 	//resets saved register values to their defaults
     memcpy(shadow_registers, Power_Up_Register_Values, Control_Register_Max);
@@ -100,14 +178,15 @@ int TLC59116_scan(void) {
   // http://www.gammon.com.au/forum/?id=10896&reply=6#reply6
 
   int device_ct = 0;
-  for (byte addr = TLC59116BaseAddr; addr <= Max_Addr; addr++) {
+  byte base_addr = tlcHandler.device_address;
+  for (byte addr = base_addr; addr <= Max_Addr; addr++) {
 
     // yup, just "ping"
     int stat = TLC59116_i2c_scan();
 
     if (stat) {
-      if (addr == AllCall_Addr) { continue; } //AllCall_Addr, skipped
-      if (addr == Reset_Addr) { continue; } //Reset_Addr, skipped
+      if (addr == tlcHandler.all_call.address) { continue; } //AllCall_Addr, skipped
+      if (addr == tlcHandler.reset_address) { continue; } //Reset_Addr, skipped
 		device_ct++;
       } // end of good response
 
@@ -117,6 +196,7 @@ int TLC59116_scan(void) {
 }
   
 int TLC59116_init(void) {
+	TLC59116_init_register_controller();
 	  int dev_count = TLC59116_scan();
 	  if (dev_count){
 		  return TLC59116_reset(); // does enable
@@ -127,94 +207,86 @@ int TLC59116_init(void) {
 
 int TLC59116_reset(void){
 	uint8_t data[2];
-	data[0] = Reset_Bytes>>8;
-	data[1] = Reset_Bytes & 0xFF;
+	data[0] = tlcHandler.reset_byte[0];
+	data[1] = tlcHandler.reset_byte[1];
+	byte reset_addr = tlcHandler.reset_address;
 	int length = 2;
 
-	int rez = TLC59116_i2c_write(Reset_Addr, data, length);
+	int rez = TLC59116_i2c_write(reset_addr, data, length);
 	if (!rez)  {
 		//TODO: handler failure to reset
 		return rez;
 	}
 
 	//resets the saved register values to default
-	TLC59116_reset_shadow_registers();
+	TLC59116_init_register_controller();
 
 	//Reset worked so disable outputs
 	int en = 0;
 	int timeout = 0;
 	TLC59116_enable_outputs(en, timeout);
+	TLC59116_enable_pwm_outputs();
 	return rez;
 }
 
 
 void TLC59116_enable_outputs(int yes, int with_delay){
 	if (yes) {
-		TLC59116_modify_control_register_bits(MODE1_Register,MODE1_OSC_mask, 0x00); // bits off is osc on
+		TLC59116_modify_register_bits(&tlcHandler.mode[1], MODE1_OSC_mask, 0x00); // bits off is osc on
 		if (with_delay){} //TODO: add a delay?
 	}
 	else {
-		TLC59116_modify_control_register_bits(MODE1_Register,MODE1_OSC_mask, MODE1_OSC_mask); // bits on is osc off
+		TLC59116_modify_register_bits(&tlcHandler.mode[1], MODE1_OSC_mask, MODE1_OSC_mask); // bits on is osc off
 	}
 
 	return ;
 }
 
-
-void TLC59116_modify_control_register(byte register_num, byte value) {
-	if (shadow_registers[register_num] != value) {
-		shadow_registers[register_num] = value;
-		TLC59116_control_register(register_num, value);
+void TLC59116_enable_pwm_outputs(void){
+	//let all LED be controlled by pwm registers
+	for(int i = 0; i<4; i++){
+		TLC59116_modify_register(&tlcHandler.ledout[i], LEDOUT_PWM_ALL);
 	}
 }
 
-void TLC59116_modify_control_register_bits(byte register_num, byte mask, byte bits){
-	byte new_value = TLC59116_set_with_mask(shadow_registers[register_num], mask, bits);
 
-	if (register_num < PWM0_Register || register_num > 0x17) {
+void TLC59116_modify_register(tlc59116_register_t * reg, byte value) {
+	if (reg->value != value) {
+		reg->value = value;
+		TLC59116_set_register(reg);
+	}
+}
+
+void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bits){
+	byte new_value = TLC59116_set_with_mask(reg->value, mask, bits);
+
+	if (reg->address < PWM0_Register || reg->address > 0x17) {
 		//TODO: ?
 	}
-	TLC59116_modify_control_register(register_num, new_value);
+	TLC59116_modify_register(reg);
 
 	return ;
 }
 
-void TLC59116_control_register(byte register_num, byte data) {
+void TLC59116_set_register(tlc59116_register_t * reg) {
 	//TODO: make sure valid control register
-	unsigned char buffer[1];
-	buffer[0] = data;
-	TLC59116_blockWrite(buffer, 1); //update control register setting
+	unsigned char buffer[2];
+	buffer[0] = reg->address;
+	buffer[1] = reg->value;
+	TLC59116_blockWrite(buffer, 2); //update control register setting
 
 	return ;
 }
-void TLC59116_set(int led_num, int offon) {
-	word bits = 1 << led_num;
-	word pattern = offon ? bits : ~bits;
-	TLC59116_set_outputs(pattern, bits);
-	return;
+
+void TLC59116_set_output(tlc59116_register_t * ledPwmReg, byte pwm){
+	TLC59116_modify_register(ledPwmReg, pwm);
 }
 
-void TLC59116_set_outputs(word pattern, word which){
-	// Only change bits marked in which: to bits in pattern
 
-	// We'll make the desired ledoutx register set
-	byte new_ledx[4];
-	// need initial value for later comparison
-	memcpy(new_ledx, &(this->shadow_registers[LEDOUT0_Register]), 4);
+void TLC59116_set_outputs(byte pwm_values[]){
 
-	// count through LED nums, starting from max (backwards is easier)
 
-	for(byte ledx_i=15; ; ledx_i--) {
-		if (0x8000 & which) {
-		  new_ledx[ledx_i / 4] = LEDx_set_mode(new_ledx[ledx_i / 4],ledx_i, (pattern & 0x8000) ? LEDOUT_DigitalOn : LEDOUT_DigitalOff);
-		}
-		pattern <<= 1;
-		which <<= 1;
-
-		if (ledx_i==0) break; // can't detect < 0 on an unsigned!
-	}
-
-	update_registers(new_ledx, LEDOUT0_Register, LEDOUTx_Register(15));
+	update_registers(new_ledx);
 	return ;
 }
 
@@ -231,54 +303,14 @@ void TLC59116_LEDx_set_mode(byte registers[], byte to_what, word which) {
 	}
 }
 
-void TLC59116_update_registers(const byte want[], byte start_r, byte end_r) {
-	// Update only the registers that need it
-	// 'want' has to be (shadow_registers & new_value)
-	// want[0] is register_value[start_r], i.e. a subset of the full register set
+void TLC59116_update_registers(byte led_registers[]) {
+	// Update led registers only
 
-	// now find the changed ones
-	//  best case is: no writes
-	//  2nd best case is some subrange
-
-	const byte *want_fullset = want - start_r; // now want[i] matches shadow_register[i]
-
-	// First change...
-	bool has_change_first = false;
-	byte change_first_r; // a register num
-
-	for (change_first_r = start_r; change_first_r <= end_r; change_first_r++) {
-		if (want_fullset[change_first_r] != shadow_registers[change_first_r]) {
-				has_change_first = true; // found it
-				break;
-		}
-	}
-
-	// Write the data if any changed
-
-	if (!has_change_first) { // might be "none changed"
-		//TODO: ?
-	}
-	else {
-			// Find last change
-			byte change_last_r; // a register num
-			for (change_last_r = end_r; change_last_r >= change_first_r; change_last_r--) {
-				if (want_fullset[change_last_r] != shadow_registers[change_last_r]) {
-					break; // found it
-				}
-		}
-
-		// We have a first..last, so write them
-		_begin_trans(Auto_All, change_first_r);
-		// TLC59116Warn("  ");
-		i2cbus.write(&want_fullset[change_first_r], change_last_r-change_first_r+1);
-		_end_trans();
-		// update shadow
-		memcpy(&shadow_registers[change_first_r], &want_fullset[change_first_r], change_last_r-change_first_r+1);
-		// FIXME: propagate shadow
-	}
+	byte led_control_data[5] = {led_registers[0], led_registers[1], led_registers[2], led_registers[3]};
+	// update shadow
+	memcpy(&shadow_registers[LEDOUT0_Register], led_registers, 4);
+	// FIXME: propagate shadow
 }
-
-
 
 
 void TLC59116_group_pwm(word bit_pattern, byte brightness) {
@@ -289,9 +321,6 @@ void TLC59116_group_blink(word bit_pattern, int blink_delay, int on_ratio) {
   return ;
 }
 
-void TLC59116_update_registers(const byte want[], byte start_r, byte end_r) {
-	return ;
-}
 
 void TLC59116_set_milliamps(byte ma, int Rext) {
   return ;

@@ -86,6 +86,7 @@ unsigned char TxData[I2C_BUFFERSIZE];           // Stores data bytes to be TX'd
 unsigned char RxData[I2C_BUFFERSIZE];           // Stores data bytes that are RX'd
 
 // Typedefs
+typedef enum tlc59116_errors_t {NOERROR, NODEVICE, I2CWRITE, I2CREAD}tlc59116_errors_t;
 
 typedef struct tlc59116_register_t {
 	byte address;
@@ -94,6 +95,7 @@ typedef struct tlc59116_register_t {
 
 typedef struct tlc59116_register_controller_t {
 	byte initialized;
+	tlc59116_errors_t error;
 	byte device_address;
 	byte channels;
 	byte reset_address;
@@ -128,6 +130,7 @@ int TLC59116_init(void);
 int TLC59116_reset(void);
 void TLC59116_enable_outputs(int yes, int with_delay);
 void TLC59116_enable_pwm_outputs(void);
+void TLC59116_set_output(tlc59116_register_t * ledPwmReg, byte pwm);
 void TLC59116_set_outputs(byte pwm_values[]);
 void TLC59116_group_pwm(word bit_pattern, byte brightness);
 void TLC59116_group_blink(word bit_pattern, int blink_delay, int on_ratio);
@@ -136,7 +139,6 @@ void TLC59116_modify_register(tlc59116_register_t * reg, byte value);
 void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bits);
 void TLC59116_set_register(tlc59116_register_t * reg);
 void TLC59116_set_pwm_registers(void);
-void TLC59116_set_output(tlc59116_register_t * ledPwmReg, byte pwm);
 
 #endif //TLC59116_h
 

@@ -11,7 +11,7 @@
 
 /********************************Define***********************************/
 #define TLC59116BaseAddr					(0x60<<1) // 0b110xxxx0 device address with write bit 0
-#define TLC59116Channels					16
+#define Channels							16
 #define Control_Register_Max				(0x1E<<1) // NB, no 0x1F !
 #define Control_Register_Min				0
 /********************************Typedef**********************************/
@@ -35,7 +35,9 @@ static const byte GRPPWM_Register = 		(0x12); // aka blink-duty-cycle-register
 static const byte GRPFREQ_Register = 		(0x13); // aka blink-length 0=~24hz, 255=~10sec
 static const byte LEDOUT0_Register = 		(0x14);
 static const byte SUBADR1_Register = 		(0x18);
-static const byte AllCall_Addr_Register = 	(0x1B);
+static const byte SUBADR2_Register = 		(0x19);
+static const byte SUBADR3_Register = 		(0x1A);
+static const byte AllCall_Register = 		(0x1B);
 static const byte IREF_Register = 			(0x1C);
 static const byte EFLAG1_Register = 		(0x1D);
 static const byte EFLAG2_Register = 		(0x1E);
@@ -71,7 +73,7 @@ static const byte MODE1_ALLCALL_mask = 		0b1;
 static const byte MODE2_DMBLNK = 			1 << 5; // 0 = group dimming, 1 = group blinking
 static const byte MODE2_EFCLR = 			1 << 7; // 0 to enable, 1 to clear
 static const byte MODE2_OCH = 				1 << 3; // 0 = "latch" on Stop, 1 = latch on ACK
-static const byte LEDOUTx_Max = 			TLC59116Channels-1; // 0..15
+static const byte LEDOUTx_Max = 			Channels-1; // 0..15
 const static byte LEDOUT_Mask = 			0b11; // 2 bits per led
 const static byte LEDOUT_PWM = 				0b10;
 const static byte LEDOUT_PWM_ALL = 			0b10101010; //all LED in led bank pwm controlled
@@ -88,7 +90,7 @@ unsigned char RxData[I2C_BUFFERSIZE];           // Stores data bytes that are RX
 typedef struct tlc59116_register_t {
 	byte address;
 	byte value;
-};
+}tlc59116_register_t;
 
 typedef struct tlc59116_register_controller_t {
 	byte initialized;
@@ -105,7 +107,7 @@ typedef struct tlc59116_register_controller_t {
 	tlc59116_register_t all_call;
 	tlc59116_register_t iref;
 	tlc59116_register_t eflag[2];
-};
+}tlc59116_register_controller_t;
 
 
 // I2C Function Declarations
@@ -126,17 +128,15 @@ int TLC59116_init(void);
 int TLC59116_reset(void);
 void TLC59116_enable_outputs(int yes, int with_delay);
 void TLC59116_enable_pwm_outputs(void);
-void TLC59116_modify_register(byte register_num, byte value);
-void TLC59116_modify_register_bits(byte register_num, byte mask, byte bits);
-void TLC59116_set_register(byte register_num, byte data);
-void TLC59116_set_output(int led_num, int offon, byte pwm);
-void TLC59116_set_outputs(byte ch_states[], byte ch_pwm[]);
-void TLC59116_LEDx_set_mode(byte registers[], byte to_what, word which);
+void TLC59116_set_outputs(byte pwm_values[]);
 void TLC59116_group_pwm(word bit_pattern, byte brightness);
 void TLC59116_group_blink(word bit_pattern, int blink_delay, int on_ratio);
-void TLC59116_update_registers(const byte want[], byte start_r, byte end_r);
 void TLC59116_set_milliamps(byte ma, int Rext);
-void TLC59116_setPWM(int duty_cycle_percent, int channel);
+void TLC59116_modify_register(tlc59116_register_t * reg, byte value);
+void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bits);
+void TLC59116_set_register(tlc59116_register_t * reg);
+void TLC59116_set_pwm_registers(void);
+void TLC59116_set_output(tlc59116_register_t * ledPwmReg, byte pwm);
 
 #endif //TLC59116_h
 

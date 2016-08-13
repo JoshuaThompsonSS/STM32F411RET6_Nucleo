@@ -83,8 +83,8 @@ void TLC59116_init_register_controller(void){
 	tlcHandler.reset_byte[1] = TLC59116Reset_Byte2;
 
 	//MODE Registers
-	tlcHandler.mode[0].address = MODE0_Register;
-	tlcHandler.mode[1].address = MODE1_Register;
+	tlcHandler.mode[0].address = MODE1_Register;
+	tlcHandler.mode[1].address = MODE2_Register;
 
 	//PWM Registers
 	tlcHandler.channels = Channels;
@@ -232,12 +232,13 @@ int TLC59116_reset(void){
 
 void TLC59116_enable_outputs(int yes, int with_delay){
 	if (yes) {
-		TLC59116_modify_register_bits(&tlcHandler.mode[1], MODE1_OSC_mask, 0x00); // bits off is osc on
+		TLC59116_modify_register_bits(&tlcHandler.mode[0], MODE1_OSC_mask, 0x00); // bits off is osc on
 		if (with_delay){} //TODO: add a delay?
 	}
 	else {
-		TLC59116_modify_register_bits(&tlcHandler.mode[1], MODE1_OSC_mask, MODE1_OSC_mask); // bits on is osc off
+		TLC59116_modify_register_bits(&tlcHandler.mode[0], MODE1_OSC_mask, MODE1_OSC_mask); // bits on is osc off
 	}
+	TLC59116_set_register(&tlcHandler.mode[1]); //send via i2c
 
 	return ;
 }
@@ -245,73 +246,19 @@ void TLC59116_enable_outputs(int yes, int with_delay){
 void TLC59116_enable_pwm_outputs(void){
 	//let all LED be controlled by pwm registers
 	for(int i = 0; i<4; i++){
-		TLC59116_modify_register(&tlcHandler.ledout[i], LEDOUT_PWM_ALL);
+		TLC59116_modify_register(&tlcHandler.ledout[i], LEDOUT_PWM_ALL); //update register handler
+		TLC59116_set_register(&tlcHandler.ledout[i]); //send to device via i2c
 	}
+
 }
-
-
-void TLC59116_modify_register(tlc59116_register_t * reg, byte value) {
-	if (reg->value != value) {
-		reg->value = value;
-		TLC59116_set_register(reg);
-	}
-}
-
-void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bits){
-	byte new_value = TLC59116_set_with_mask(reg->value, mask, bits);
-
-	if (reg->address < PWM0_Register || reg->address > 0x17) {
-		//TODO: ?
-	}
-	TLC59116_modify_register(reg);
-
-	return ;
-}
-
-void TLC59116_set_register(tlc59116_register_t * reg) {
-	//TODO: make sure valid control register
-	unsigned char buffer[2];
-	buffer[0] = reg->address;
-	buffer[1] = reg->value;
-	TLC59116_blockWrite(buffer, 2); //update control register setting
-
-	return ;
-}
-
-void TLC59116_set_output(tlc59116_register_t * ledPwmReg, byte pwm){
-	TLC59116_modify_register(ledPwmReg, pwm);
-}
-
 
 void TLC59116_set_outputs(byte pwm_values[]){
-
-
-	update_registers(new_ledx);
+	for(int i = 0; i<tlcHandler.channels; i++){
+		TLC59116_modify_register(&tlcHandler.pwm[i], pwm_values[i]); //this just updates the pwm handler values
+	}
+	TLC59116_set_pwm_registers(); //after modifying pwm handler values structure send to device via i2c
 	return ;
 }
-
-void TLC59116_LEDx_set_mode(byte registers[], byte to_what, word which) {
-	// count through LED nums, starting from max (backwards is easier)
-
-	for(byte ledx_i=15; ; ledx_i--) {
-		if (0x8000 & which) {
-			registers[ledx_i / 4] = LEDx_set_mode(registers[ledx_i / 4], ledx_i, to_what);
-		}
-		which <<= 1;
-
-		if (ledx_i==0) break; // can't detect < 0 on an unsigned!
-	}
-}
-
-void TLC59116_update_registers(byte led_registers[]) {
-	// Update led registers only
-
-	byte led_control_data[5] = {led_registers[0], led_registers[1], led_registers[2], led_registers[3]};
-	// update shadow
-	memcpy(&shadow_registers[LEDOUT0_Register], led_registers, 4);
-	// FIXME: propagate shadow
-}
-
 
 void TLC59116_group_pwm(word bit_pattern, byte brightness) {
   return ;
@@ -325,5 +272,49 @@ void TLC59116_group_blink(word bit_pattern, int blink_delay, int on_ratio) {
 void TLC59116_set_milliamps(byte ma, int Rext) {
   return ;
 }
+
+
+//Load new values into register but don't send yet
+void TLC59116_modify_register(tlc59116_register_t * reg, byte value) {
+	if (reg->value != value) {
+		reg->value = value;
+	}
+}
+
+void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bits){
+	byte new_value = TLC59116_set_with_mask(reg->value, mask, bits);
+
+	if (reg->address < PWM0_Register || reg->address > 0x17) {
+		//TODO: ?
+	}
+	TLC59116_modify_register(reg, new_value);
+
+	return ;
+}
+
+void TLC59116_set_register(tlc59116_register_t * reg) {
+	//TODO: make sure valid control register
+	unsigned char buffer[2];
+	buffer[0] = reg->address;
+	buffer[1] = reg->value;
+	TLC59116_blockWrite(buffer, 2); //update control register setting
+	return ;
+}
+
+void TLC59116_set_pwm_registers(void){
+	byte buffer[Channels+1];
+	buffer[0] = tlcHandler.pwm[0].address | Auto_PWM; //tell device to auto write increment pwm register only
+	for(int i = 1; i<=Channels; i++){
+		buffer[i] = tlcHandler.pwm[i].value;
+	}
+	TLC59116_blockWrite(buffer, Channels+1); //update control register setting
+}
+
+
+void TLC59116_set_output(tlc59116_register_t * ledPwmReg, byte pwm){
+	TLC59116_modify_register(ledPwmReg, pwm);
+	TLC59116_set_register(ledPwmReg);
+}
+
 
 

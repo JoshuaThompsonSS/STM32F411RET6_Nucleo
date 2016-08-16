@@ -8,6 +8,30 @@
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include <stdlib.h>
+/********************************Test Define *****************************/
+// I2C bus addresses (excludes the R/W bit)
+#define ADDRESS                        0b11000000  // Assumes A0 to A3 are connected to ground
+#define ALLCALL_ADDRESS                0b11010000
+#define RESET_ADDRESS                  0b11010110
+
+// I2C R/W
+#define I2C_READ                       1
+#define I2C_WRITE                      0
+
+// Control register (three MSB control auto-increment)
+#define NO_AUTO_INCREMENT              0b00000000
+#define AUTO_INCREMENT_ALL_REGISTERS   0b10000000
+#define AUTO_INCREMENT_BRIGHTNESS      0b10100000
+#define AUTO_INCREMENT_CONTROL         0b11000000
+#define AUTO_INCREMENT_BRIGHT_CONTROL  0b11100000
+
+// TLC59116 registers
+#define TLC59116_GRPPWM                (0x12)
+#define TLC59116_LEDOUT0               (0x14)
+
+// LED output state for LEDOUT0 to LEDOUT3
+#define LED_OUTPUT_OFF                 0b00
+#define LED_OUTPUT_GROUP               0b11
 
 /********************************Define***********************************/
 #define TLC59116BaseAddr					(0x60<<1) // 0b110xxxx0 device address with write bit 0
@@ -139,6 +163,11 @@ void TLC59116_modify_register(tlc59116_register_t * reg, byte value);
 void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bits);
 void TLC59116_set_register(tlc59116_register_t * reg);
 void TLC59116_set_pwm_registers(void);
+void TLC59116_test(void);
+void TLC59116_test_init(void);
+void TLC59116_test_loop(void);
+void TLC59116_test_setBrightness(int brightness);
+void TLC59116_test_setLEDs(int LEDs);
 
 #endif //TLC59116_h
 

@@ -35,7 +35,8 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "functional_rgb_led.h"
-#include "fuel_gauge.h"
+//#include "i2c.h"
+#include "tlc59116.h"
 #include <math.h>
 #include "stdlib.h"
 #include "string.h"
@@ -66,6 +67,7 @@ int seqNum = 0;
 
 //Power mode testing variables
 int global_a = 0, global_b = 0;
+extern tlc59116_register_controller_t tlcHandler;;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -516,9 +518,11 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
+  //Init GPIO and I2C1
 
+  MX_I2C1_Init();
   /* Initialize LED*/
-  initLED();
+  //initLED();
 
   /* Initialize Button Interrupt */
   //initButtonInterrupt();
@@ -529,24 +533,21 @@ int main(void)
   //sleepModeTest();
   //sleepModeTestWithTimer();
   //standbyModeTest();
+ TLC59116_init();
+ byte pwm_values[16];
+ for(int i = 0; i<tlcHandler.channels; i++){pwm_values[i] = 0xff;}
+ TLC59116_set_outputs(pwm_values);
+ InitRGBCmd();
 
   while (1)
   {
-	//CmdLine(); //Wait for user cmd and then set rgb led seq with params according to cmd
-
-	 wait_sec(1);
-	 /*
-	 char *rxMsg = (char*)calloc(maxStr, sizeof(char)); //"!02u200h5000?\n";
-	 HAL_UART_Receive(&UART_Handle, (uint8_t*)rxMsg, 1, 0xFFFF);
-	 if(rxMsg[0]=='J'){
-		 toggleLED();
-	 }
-	 */
 
 
   }
 
 }
+
+
 
 //Testing: init only red rgb led
 void InitRedLed(void){
@@ -567,7 +568,7 @@ void StopRedLed(void){
 //Init rgb led seq and cmdline
 void InitRGBCmd(void){
 	FUNCTIONAL_RGB_LED_StartService();
-	 Init_USART();
+	 //Init_USART();
 	 rgbHandle.enabled = true;
 	 FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CHARGING);
 }

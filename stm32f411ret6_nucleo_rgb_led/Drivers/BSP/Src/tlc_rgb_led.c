@@ -1,0 +1,363 @@
+/*
+ ******************************************************************************
+ * File Name          : TLC_RGB_LED.c
+ * Description        : TLC_RGB_LED: TLC59116 RGB LED Driver - 16 ch pwm controller for leds
+ ******************************************************************************
+ *
+ * COPYRIGHT(c) 2016 SonicSensory Inc.
+ *          All rights reserved. This code or any portion thereof
+ *          may not be reproduced or used in any manner whatsoever
+ *          without the express written permission of the SonicSensory Inc.
+ *
+ *Initialization Sequence
+ * 1. Initialize Config Structure, RGB LED TIMER, PWM and GPIO Registers / Peripherals
+ *    - TLC_RGB_LED_Init(rgbnum); //rgbnum is the RGB LED you are using (0 is functional rgb led and 1 is decorative rgb led)
+ * 2. Start the RGB LED PWM generator - this generates three pwm outputs for the three individual leds of the rgb led
+ *    - TLC_RGB_LED_Start(rgbnum); //rgbnum is the RGB LED number you are using
+ *
+ *Normal Operation
+ * 1. TLC_RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
+ * 2. Sets the RGB color of the LED by setting the three pwm outputs (0 - 100%) of the RGB LED pins
+ * 3. This will update the voltages seen by the RGB LED
+ *
+ *
+ *
+ *Shutdown / Power-Down Sequence
+ * - TLC_RGB_LED_Stop
+ * - TLC_RGB_LED_DeInit
+ *
+ *
+ * Pins Used:
+ * PA9  -  PWM Output pin to Red LED of RGB LED (PA5 for the STM32F411RET6 nucleo board)
+ * PC8  -  PWM Output pin to Green LED of RGB LED
+ * PD13 - PWM Output pin to Blue LED of RGB LED (PC10 for the STM32F411RET6 nucleo board)
+ *
+ * TO CHANGE PINS edit rgb_led.h:
+ *   - RGB1_RED_PIN
+ *   - RGB1_GREEN_PIN
+ *   - RGB1_BLUE_PIN
+ *
+ */
+
+/*
+ ********  INCLUDE FILES & EXTERNAL VARIABLES  ********
+ */
+#include "tlc_rgb_led.h"
+
+
+/*
+ ********  DEFINE CONSTANTS & DATA TYPE (GLOBAL VARIABLES) ********
+ */
+
+//array of rgb led handlers
+TLC_RGB_LED_handler_t RgbLedHandlers[TLC_RGB_LED_COUNT];
+
+
+/*
+ ********  FUNCTION DECLARATION & DEFINTION ********
+ */
+
+
+/* ******************************************************************
+** FUNCTION NAME: TLC_RGB_LED_InitConfigs()
+ * DESCRIPTION: Initialize all RGB Config Structures
+ * NOTE: Initialize the RGB_LED Structures
+ *********************************************************************************** */
+void TLC_RGB_LED_InitConfigs(void)
+{
+
+	//Functional RGB LED Handler config
+	RgbLedHandlers[FUNCTIONAL_RGB_NUM].red.channel = FUNCTIONAL_RGB_RED_CH;
+	RgbLedHandlers[FUNCTIONAL_RGB_NUM].green.channel = FUNCTIONAL_RGB_GREEN_CH;
+	RgbLedHandlers[FUNCTIONAL_RGB_NUM].blue.channel = FUNCTIONAL_RGB_BLUE_CH;
+
+	//Decorative RGB LED1 Handler config
+	RgbLedHandlers[DECORATIVE_RGB1_NUM].red.channel = DECORATIVE_RGB1_RED_CH;
+	RgbLedHandlers[DECORATIVE_RGB1_NUM].green.channel = DECORATIVE_RGB1_GREEN_CH;
+	RgbLedHandlers[DECORATIVE_RGB1_NUM].blue.channel = DECORATIVE_RGB1_BLUE_CH;
+
+	//Decorative RGB LED2 Handler config
+	RgbLedHandlers[DECORATIVE_RGB2_NUM].red.channel = DECORATIVE_RGB2_RED_CH;
+	RgbLedHandlers[DECORATIVE_RGB2_NUM].green.channel = DECORATIVE_RGB2_GREEN_CH;
+	RgbLedHandlers[DECORATIVE_RGB2_NUM].blue.channel = DECORATIVE_RGB2_BLUE_CH;
+
+	//Decorative RGB LED1 Handler config
+	RgbLedHandlers[DECORATIVE_RGB3_NUM].red.channel = DECORATIVE_RGB3_RED_CH;
+	RgbLedHandlers[DECORATIVE_RGB3_NUM].green.channel = DECORATIVE_RGB3_GREEN_CH;
+	RgbLedHandlers[DECORATIVE_RGB3_NUM].blue.channel = DECORATIVE_RGB3_BLUE_CH;
+
+	//Decorative RGB LED1 Handler config
+	RgbLedHandlers[DECORATIVE_RGB4_NUM].red.channel = DECORATIVE_RGB4_RED_CH;
+	RgbLedHandlers[DECORATIVE_RGB4_NUM].green.channel = DECORATIVE_RGB4_GREEN_CH;
+	RgbLedHandlers[DECORATIVE_RGB4_NUM].blue.channel = DECORATIVE_RGB4_BLUE_CH;
+
+}
+
+/* ******************************************************************
+** FUNCTION NAME: TLC_RGB_LED_Init()
+ * DESCRIPTION: Initialize all RGB Led structures / timers
+ * NOTE: Initialize the RGB_LED
+ *********************************************************************************** */
+void TLC_RGB_LED_Init(int rgbnum)
+{
+	TLC_RGB_LED_InitConfigs();
+	TLC59116_init(); //init TI TLC59116 16 ch led controller
+
+	//Once initialized, then ok to call TLC_RGB_LED_Start
+
+  return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_DeInit()
+** DESCRIPTION: RGB_LED to de-initialize the driver component.
+** NOTE:		None.
+*********************************************************************************** */
+void TLC_RGB_LED_DeInit(int rgbnum)
+{
+  /* Deinitialize RGB LED Driver */
+  //TODO: TLC59116 de init not developed
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_Reset()
+** DESCRIPTION: Reset RGBx LED - stop pwm, configure data struct, initialize
+** NOTE:		Does not call the TLC_RGB_LED_Start method - need to call after reset
+*********************************************************************************** */
+void TLC_RGB_LED_Reset(int rgbnum)
+{
+	TLC59116_reset(); //resets tlc 59116 led driver via i2c
+
+  return;
+}
+
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_Start()
+** DESCRIPTION:
+** NOTE:		None.
+*********************************************************************************** */
+void TLC_RGB_LED_Start(int rgbnum)
+{
+	//TODO: currently led outputs already enabled in the tlc59116 init
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_StartLED()
+** DESCRIPTION: Initialize individual LED TIM Handler and PWM Config structures
+** NOTE:		None.
+*********************************************************************************** */
+void TLC_RGB_LED_StartLED(int rgbnum){
+	//Activate outputs for specific rgb led
+	//TODO: ?
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_Stop()
+** DESCRIPTION: Stop the PWM generation on all color lines of RGBx LED
+** NOTE:		None.
+ *
+*********************************************************************************** */
+void TLC_RGB_LED_Stop(int rgbnum)
+{
+	//TODO: ?
+
+  return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_StopLED()
+** DESCRIPTION: Stop the PWM generation for a rgb led ( 3 leds)
+** NOTE:		None.
+ *
+*********************************************************************************** */
+void TLC_RGB_LED_StopLED(int rgbnum)
+{
+	//TODO: ?
+
+  return;
+}
+
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_PowerDown()
+** DESCRIPTION: This power downs the driver
+** NOTE:		None.
+ *Power-Down Sequence:
+*********************************************************************************** */
+void TLC_RGB_LED_PowerDown(int rgbnum)
+{
+	//TODO: ?
+
+  return;
+}
+
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_ExitShutdown()
+** DESCRIPTION:
+** NOTE:		None.
+ *
+ *Exit:
+*********************************************************************************** */
+void TLC_RGB_LED_ExitShutdown(void)
+{
+	//TODO: ?
+}
+
+
+/**
+ * NAME: TLC_RGB_LED_EnterShutdown()
+ *
+ *Enter:
+ */
+void TLC_RGB_LED_EnterShutdown(void)
+{
+	//TODO: ?
+  return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_SetColor()
+** DESCRIPTION: set the three color pins pwm duty cycle of the rgb led to change color
+** NOTE:		color variable is struct that just defines three int representing red, green and blue - range (0 - 255)
+ *
+*********************************************************************************** */
+void TLC_RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
+{
+	if(rgbnum >= TLC_RGB_LED_COUNT){
+		TLC_RGB_LED_ErrorHandler();
+		return;
+	}
+	//make sure rgb values between 0 - 255
+	//red
+	if(color->red < 0){color->red = 0;}
+	else if(color->red > 255){color->red = 255;}
+	//green
+	if(color->green < 0){color->green = 0;}
+	else if(color->green > 255){color->green = 255;}
+	//blue
+	if(color->blue < 0){color->blue = 0;}
+	else if(color->blue > 255){color->blue = 255;}
+
+	//update RED pin of RGB LED - get the pwm duty cycle % equivalent of the 0 - 255 color value
+	rgb_duty_cycle_t rgb_duty_cycle;
+	float duty_cycle = RGB_PWM_OFFSET_RED + (color->red * RGB_TO_PWM_SCALE_RED); //ex: 240 * (100% / 255) = 94.1 % duty cycle (brightness %)
+	rgb_duty_cycle.red = duty_cycle;
+
+	//GREEN
+	duty_cycle = RGB_PWM_OFFSET_GREEN + (color->green * RGB_TO_PWM_SCALE_GREEN);
+	rgb_duty_cycle.green = duty_cycle;
+
+	//BLUE
+	duty_cycle = RGB_PWM_OFFSET_BLUE + (color->blue * RGB_TO_PWM_SCALE_BLUE);
+	rgb_duty_cycle.blue = duty_cycle;
+
+	//update the pwm values of the rgb led channels
+	TLC_RGB_LED_SetDutyCycle(&rgb_duty_cycle, &RgbLedHandlers[rgbnum]);
+
+  return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_GetColor()
+** DESCRIPTION: get the current color settings of the rgb led
+** NOTE:		color variable is struct that just defines three int representing red, green and blue - range (0 - 255)
+ *
+*********************************************************************************** */
+void TLC_RGB_LED_GetColor(int rgbnum, rgb_color_t * color)
+{
+	if(rgbnum >= TLC_RGB_LED_COUNT){
+		TLC_RGB_LED_ErrorHandler();
+		return;
+	}
+
+	//Update rgb led handler with new duty cycle / pwm values
+	TLC_RGB_LED_UpdateDutyCycle(&RgbLedHandlers[rgbnum]);
+
+	//RED - get red color rgb value 0 - 255
+	color->red = TLC_RGB_LED_Round((RgbLedHandlers[rgbnum].red.pwm - RGB_PWM_OFFSET_RED) / RGB_TO_PWM_SCALE_RED);
+	RgbLedHandlers[rgbnum].color.red = color->red;
+	//GREEN
+	color->green = TLC_RGB_LED_Round((RgbLedHandlers[rgbnum].green.pwm - RGB_PWM_OFFSET_GREEN) / RGB_TO_PWM_SCALE_GREEN);
+	RgbLedHandlers[rgbnum].color.green = color->green;
+	//BLUE
+	color->blue = TLC_RGB_LED_Round((RgbLedHandlers[rgbnum].blue.pwm  - RGB_PWM_OFFSET_BLUE) / RGB_TO_PWM_SCALE_BLUE);
+	RgbLedHandlers[rgbnum].color.blue = color->blue;
+
+  return;
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_Round()
+** DESCRIPTION: Round number up / down (this is to save as much of the rgb led value after converting from float to int)
+** NOTE:		example: TLC_RGB_LED_Round(1.5) = 2
+ *
+*********************************************************************************** */
+int TLC_RGB_LED_Round(float value){
+	float remainder = value - (int)value;
+	//ex: if value = 1.9
+	//    remainder = 1.9 - (int)1.9 = 1.9 - 1 = 0.9
+	//    0.9 is > 0.5 so value = 1.9 + 0.5 = 2.3
+	//   returns int(2.3) = 2
+	if(remainder >= 0.5){
+		value = value + 0.5;
+		return value;
+	}
+	else{
+		//ex: if value = 1.4 then just return int(1.4) = 1
+		return value;
+	}
+}
+
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_SetDutyCycle()
+** DESCRIPTION: Updates the Duty Cycle /  Pulse value of the pwm used in the timer capture / compare register
+** 				This essentially changed the voltage that the LED pin sees therefore changing the color of the entire rgb led
+** 				Ex: if duty cycle is 50% then voltage seen by pin is 50% of VCC
+** NOTE:		Might need to only allow this during certain interrupt periods ... blocking?
+** 			    TLC_RGB_LED_SetColor calls this function
+ *
+*********************************************************************************** */
+void TLC_RGB_LED_SetDutyCycle(rgb_duty_cycle_t * rgb_duty_cycle, int rgbnum){
+
+	//TODO: ?
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_UpdateDutyCycle()
+** DESCRIPTION: Read the Duty Cycle /  Pulse value of the pwm used for a single color on the RGB LED
+**
+** NOTE:		TLC_RGB_LED_GetColor calls this function
+ *
+*********************************************************************************** */
+void TLC_RGB_LED_UpdateDutyCycle(int rgbnum){
+	float duty_cycle_percent;
+	//TODO: update pwm values of rgb led handler
+	return ;
+
+	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?
+
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: TLC_RGB_LED_ErrorHandler()
+** DESCRIPTION: Handles Errors....
+** NOTE:		None.
+ *
+*********************************************************************************** */
+void TLC_RGB_LED_ErrorHandler(void)
+{
+	//TODO: Need to implement this method
+
+  return;
+}
+
+
+
+
+
+

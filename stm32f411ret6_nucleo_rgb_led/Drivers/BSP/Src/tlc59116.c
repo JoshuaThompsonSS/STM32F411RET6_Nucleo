@@ -85,7 +85,9 @@ void TLC59116_init_register_controller(void){
 
 	//MODE Registers
 	tlcHandler.mode[0].address = MODE1_Register;
+	tlcHandler.mode[0].value = 0x00;
 	tlcHandler.mode[1].address = MODE2_Register;
+	tlcHandler.mode[1].value = 0x00;
 
 	//PWM Registers
 	tlcHandler.channels = Channels;
@@ -178,23 +180,16 @@ byte TLC59116_set_with_mask(byte was, byte mask, byte new_bits) { // only set th
  * Note: scans for a valid TLC59116 i2c device
  */
 int TLC59116_scan(void) {
-  // this code lifted & adapted from Nick Gammon (written 20th April 2011)
-  // http://www.gammon.com.au/forum/?id=10896&reply=6#reply6
 
-  int device_ct = 0;
-  byte base_addr = tlcHandler.device_address;
-  for (byte addr = base_addr; addr <= Max_Addr; addr++) {
+	int device_ct = 0;
 
-    // yup, just "ping"
-    int stat = TLC59116_i2c_scan();
+	// yup, just "ping"
+	int stat = TLC59116_i2c_scan();
 
-    if (stat) {
-      if (addr == tlcHandler.all_call.address) { continue; } //AllCall_Addr, skipped
-      if (addr == tlcHandler.reset_address) { continue; } //Reset_Addr, skipped
+	if (stat) {
 		device_ct++;
-      } // end of good response
+	} // end of good response
 
-    } // end of for loop
 
   return device_ct;
 }
@@ -250,13 +245,13 @@ int TLC59116_reset(void){
  */
 void TLC59116_enable_outputs(int yes, int with_delay){
 	if (yes) {
-		TLC59116_modify_register_bits(&tlcHandler.mode[0], MODE1_OSC_mask, 0x00); // bits off is osc on
+		TLC59116_modify_register_bits(&tlcHandler.mode[0],  MODE1_OSC_mask, 0x00); // bits off is osc on
 		if (with_delay){} //TODO: add a delay?
 	}
 	else {
 		TLC59116_modify_register_bits(&tlcHandler.mode[0], MODE1_OSC_mask, MODE1_OSC_mask); // bits on is osc off
 	}
-	TLC59116_set_register(&tlcHandler.mode[1]); //send via i2c
+	TLC59116_set_register(&tlcHandler.mode[0]); //send via i2c
 
 	return ;
 }
@@ -338,7 +333,7 @@ void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bi
 void TLC59116_set_register(tlc59116_register_t * reg) {
 	//TODO: make sure valid control register
 	unsigned char buffer[2];
-	buffer[0] = reg->address;
+	buffer[0] = NO_AUTO_INCREMENT + reg->address;
 	buffer[1] = reg->value;
 	TLC59116_blockWrite(buffer, 2); //update control register setting
 	return ;
@@ -350,10 +345,104 @@ void TLC59116_set_register(tlc59116_register_t * reg) {
 void TLC59116_set_pwm_registers(void){
 	byte buffer[Channels+1];
 	buffer[0] = tlcHandler.pwm[0].address | Auto_PWM; //tell device to auto write increment pwm register only
-	for(int i = 1; i<=Channels; i++){
-		buffer[i] = tlcHandler.pwm[i].value;
+	for(int i = 0; i<=Channels; i++){
+		buffer[1+i] = tlcHandler.pwm[i].value;
 	}
 	TLC59116_blockWrite(buffer, Channels+1); //update control register setting
+}
+
+/*
+ * Note: simple test rgb led sequence
+ */
+void TLC59116_test(void){
+	TLC59116_test_init();
+	while(1){
+	TLC59116_test_loop();
+	}
+
+}
+
+void TLC59116_test_init(void){
+	// Transmit to the TLC59116
+	byte buffer[100];
+
+	  // Send the control register.  All registers will be written to, starting at register 0
+	  buffer[0] = AUTO_INCREMENT_ALL_REGISTERS;
+	  // Set MODE1: no sub-addressing
+	  buffer[1] = 0;
+	  // Set MODE2: dimming
+	  buffer[2] = 0;
+	  // Set individual brightness control to maximum
+	  int i = 0;
+	  for (i=0; i< 16; i++){
+		  buffer[3+i] = 0xFF;
+	  }
+	  // Set GRPPWM: Full brightness
+	  buffer[3+i] = 0xFF;
+	  // Set GRPFREQ: Not blinking, must be 0
+	  buffer[3+i+1] = 0;
+	  int k = 3+i+1;
+	  // Set LEDs off for now
+	  for (i=0; i< 4; i++){
+		 buffer[k+i] = 0;
+	  }
+	  int len = k+i;
+	  // Set the I2C all-call and sub addresses (if needed)
+	  TLC59116_blockWrite(buffer, len);
+	  HAL_Delay(100);
+}
+
+// Turn the LEDs on or off.  LEDs is a 16-bit int corresponding to OUT0 (LSB) to OUT15 (MSB)
+void TLC59116_test_setLEDs(int LEDs)
+{
+
+  // Write to consecutive registers, starting with LEDOUT0
+  byte buffer[5];
+  for(int i = 0; i<4; i++){
+	  buffer[0] = NO_AUTO_INCREMENT + TLC59116_LEDOUT0 + i;
+  	  buffer[1] = 0b10101010;
+  	  TLC59116_blockWrite(buffer, 2);
+  }
+}
+
+
+// Set the brightness from 0 to 0xFF
+void TLC59116_test_setBrightness(int brightness)
+{
+  // Write to the GRPPWM register
+  byte buffer[Channels+1];
+  buffer[0] = AUTO_INCREMENT_BRIGHTNESS + PWM0_Register; //NO_AUTO_INCREMENT + TLC59116_GRPPWM;
+  for(int i = 0; i<Channels; i++){
+	  buffer[1+i] = 2*i*brightness;
+  }
+  TLC59116_blockWrite(buffer, Channels+1);
+}
+
+void TLC59116_test_loop(void)
+{
+  // Loop through LEDs from 0 to 15
+	TLC59116_test_setLEDs(1);
+
+	for(int i = 0; i<Channels; i++){
+		TLC59116_test_setBrightness(i);
+		HAL_Delay(100);
+	}
+    HAL_Delay(1000);
+    TLC59116_test_setBrightness(0x00);
+    HAL_Delay(1000);
+
+
+    /*
+  // Light all LEDs off
+  TLC59116_test_setLEDs(0);
+  for (int i=255; i > 0; i--) {
+	TLC59116_test_setBrightness(i);
+    HAL_Delay(20);
+  }
+  HAL_Delay(1000);
+  TLC59116_test_setLEDs(0);
+  TLC59116_test_setBrightness(0xFF);
+  */
 }
 
 

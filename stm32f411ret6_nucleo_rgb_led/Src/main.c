@@ -35,6 +35,8 @@
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_uart.h"
 #include "functional_rgb_led.h"
+#include "rgb_led.h"
+#include "tlc_rgb_led.h"
 //#include "i2c.h"
 #include "tlc59116.h"
 #include <math.h>
@@ -533,11 +535,10 @@ int main(void)
   //sleepModeTest();
   //sleepModeTestWithTimer();
   //standbyModeTest();
- TLC59116_init();
- byte pwm_values[16];
- for(int i = 0; i<tlcHandler.channels; i++){pwm_values[i] = 0xff;}
- TLC59116_set_outputs(pwm_values);
- InitRGBCmd();
+ //TLC59116_init();
+  //TLC_RGB_LED_Test();
+
+  InitRGBCmd();
 
   while (1)
   {

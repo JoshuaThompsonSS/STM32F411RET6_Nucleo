@@ -285,6 +285,14 @@ void TLC59116_set_outputs(byte pwm_values[]){
 	return ;
 }
 
+void TLC59116_set_outputs_from(byte pwm_values[], int start_ch, int end_ch){
+	for(int i = start_ch; i<=end_ch; i++){
+		TLC59116_modify_register(&tlcHandler.pwm[i], pwm_values[i]); //this just updates the pwm handler values
+	}
+	TLC59116_set_pwm_registers_from(start_ch, end_ch); //after modifying pwm handler values structure send to device via i2c
+	return ;
+}
+
 /*
  * Note: turn on group pwm control
  */
@@ -349,6 +357,17 @@ void TLC59116_set_pwm_registers(void){
 		buffer[1+i] = tlcHandler.pwm[i].value;
 	}
 	TLC59116_blockWrite(buffer, Channels+1); //update control register setting
+}
+
+void TLC59116_set_pwm_registers_from(int start_ch, int end_ch){
+	byte buffer[Channels+1];
+	if(start_ch > end_ch){return;}
+
+	buffer[0] = tlcHandler.pwm[start_ch].address | Auto_PWM; //tell device to auto write increment pwm register only
+	for(int i = 0; i<=end_ch; i++){
+		buffer[1+i] = tlcHandler.pwm[start_ch+i].value;
+	}
+	TLC59116_blockWrite(buffer, end_ch - start_ch + 2); //update control register setting
 }
 
 /*

@@ -274,7 +274,7 @@ void FUNCTIONAL_RGB_LED_InitSequences(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Init(void){
-	RGB_LED_Init(FUNC_RGB_LED_NUM);
+	TLC_RGB_LED_Init(FUNC_TLC_RGB_LED_NUM);
 	return;
 }
 
@@ -287,27 +287,27 @@ void FUNCTIONAL_RGB_LED_Init(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Start(void)
 {
-	RGB_LED_Start(FUNC_RGB_LED_NUM);
+	TLC_RGB_LED_Start(FUNC_TLC_RGB_LED_NUM);
 	return;
 }
 void FUNCTIONAL_RGB_LED_Stop(void){
-	RGB_LED_Stop(FUNC_RGB_LED_NUM);
+	TLC_RGB_LED_Stop(FUNC_TLC_RGB_LED_NUM);
 	return;
 }
 void FUNCTIONAL_RGB_LED_DeInit(void){
-	RGB_LED_DeInit(FUNC_RGB_LED_NUM);
+	TLC_RGB_LED_DeInit(FUNC_TLC_RGB_LED_NUM);
 	return;
 }
 void FUNCTIONAL_RGB_LED_Reset(void){
-	RGB_LED_Reset(FUNC_RGB_LED_NUM);
+	TLC_RGB_LED_Reset(FUNC_TLC_RGB_LED_NUM);
 	return;
 }
 void FUNCTIONAL_RGB_LED_SetColor(rgb_color_t * color){
-	RGB_LED_SetColor(FUNC_RGB_LED_NUM, color);
+	TLC_RGB_LED_SetColor(FUNC_TLC_RGB_LED_NUM, color);
 	return;
 }
 void FUNCTIONAL_RGB_LED_GetColor(rgb_color_t * color){
-	RGB_LED_GetColor(FUNC_RGB_LED_NUM, color);
+	TLC_RGB_LED_GetColor(FUNC_TLC_RGB_LED_NUM, color);
 	return;
 }
 void FUNCTIONAL_RGB_LED_GetColorDiff(rgb_color_t * color1, rgb_color_t * color2, rgb_color_t * colorDelta){
@@ -912,7 +912,7 @@ void FUNCTIONAL_RGB_LED_GetColorScales(rgb_led_step_t * step){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 
-	RGB_LED_GetColor(FUNC_RGB_LED_NUM, &step->color);
+	TLC_RGB_LED_GetColor(FUNC_TLC_RGB_LED_NUM, &step->color);
 	rgb_color_t dlta_clr;
 
 	if(step->time <= 0){
@@ -1227,7 +1227,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 //called by Timer Initialization
 void  HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
 	if(htim->Instance == FUNC_RGB_INT_TIM_REG){
-		RGB_LED_EnTimClk(htim->Instance);
+		FUNCTIONAL_RGB_LED_EnTimClk(htim->Instance);
 		HAL_NVIC_SetPriority((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ), 0x0F, 0x00);
 		HAL_NVIC_EnableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
 	}
@@ -1235,8 +1235,96 @@ void  HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim){
 
 //called by Timer DeInitialization
 void  HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef *htim){
-	RGB_LED_DisTimClk(htim->Instance);
+	FUNCTIONAL_RGB_LED_DisTimClk(htim->Instance);
 	HAL_NVIC_DisableIRQ((IRQn_Type)(FUNC_RGB_INT_TIM_IRQ));
 }
 
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_EnTimClk()
+** DESCRIPTION: Enable timer clock
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_EnTimClk(TIM_TypeDef * TimRegx){
+	if(TimRegx==TIM1){
+		__TIM1_CLK_ENABLE();
+		return;
+	}
+	else if(TimRegx==TIM2){
+		__TIM2_CLK_ENABLE();
+		return;
+	}
+	else if(TimRegx==TIM3){
+		__TIM3_CLK_ENABLE();
+		return;
+	}
+	else if(TimRegx==TIM4){
+		__TIM4_CLK_ENABLE();
+		return;
+	}
+	else{
+		FUNCTIONAL_RGB_LED_ErrorHandler();
+		return;
+	}
+}
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_DisTimClk()
+** DESCRIPTION: Disable timer clock
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_DisTimClk(TIM_TypeDef * TimRegx){
+	if(TimRegx==TIM1){
+		__TIM1_CLK_DISABLE();
+		return;
+	}
+	else if(TimRegx==TIM2){
+		__TIM2_CLK_DISABLE();
+		return;
+	}
+	else if(TimRegx==TIM3){
+		__TIM3_CLK_DISABLE();
+		return;
+	}
+	else if(TimRegx==TIM4){
+		__TIM4_CLK_DISABLE();
+		return;
+	}
+	else{
+		FUNCTIONAL_RGB_LED_ErrorHandler();
+		return;
+	}
+}
+
+
+
+/* ********************************************************************************
+** FUNCTION NAME: FUNCTIONAL_RGB_LED_EnGpioClk()
+** DESCRIPTION: Enable the correct GPIO Clock based on port argument
+** NOTE:
+ *
+*********************************************************************************** */
+void FUNCTIONAL_RGB_LED_EnGpioClk(GPIO_TypeDef * port){
+	if(port == GPIOA){
+		__HAL_RCC_GPIOA_CLK_ENABLE();
+	}
+	else if(port == GPIOB){
+		__HAL_RCC_GPIOB_CLK_ENABLE();
+	}
+	else if(port == GPIOC){
+		__HAL_RCC_GPIOC_CLK_ENABLE();
+	}
+	else if(port == GPIOD){
+			__HAL_RCC_GPIOD_CLK_ENABLE();
+		}
+	else if(port == GPIOE){
+			__HAL_RCC_GPIOE_CLK_ENABLE();
+		}
+	else{
+		//GPIOH is not available for Timer based PWM generation
+		FUNCTIONAL_RGB_LED_ErrorHandler();
+	}
+}
 

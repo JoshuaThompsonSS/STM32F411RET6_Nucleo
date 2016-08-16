@@ -7,7 +7,7 @@
 #define _TLC_RGB_LED_H_
 #include "stm32f4xx_hal.h"
 #include "tlc59116.h"
-
+#include "rgb.h"
 
 /*
  * ------Constants and Variable Declarations
@@ -63,53 +63,37 @@
 //RGB LED mapping
 #define FUNCTIONAL_RGB_NUM			0
 #define FUNCTIONAL_RGB_RED_CH		0
-#define FUNCTIONAL_RGB_GREEN_CH		0
-#define FUNCTIONAL_RGB_BLUE_CH		0
+#define FUNCTIONAL_RGB_GREEN_CH		1
+#define FUNCTIONAL_RGB_BLUE_CH		2
 
 #define DECORATIVE_RGB1_NUM			1
-#define DECORATIVE_RGB1_RED_CH		1
-#define DECORATIVE_RGB1_GREEN_CH	1
-#define DECORATIVE_RGB1_BLUE_CH		1
+#define DECORATIVE_RGB1_RED_CH		3
+#define DECORATIVE_RGB1_GREEN_CH	4
+#define DECORATIVE_RGB1_BLUE_CH		5
 
 
 #define DECORATIVE_RGB2_NUM			2
-#define DECORATIVE_RGB2_RED_CH		1
-#define DECORATIVE_RGB2_GREEN_CH	1
-#define DECORATIVE_RGB2_BLUE_CH		1
+#define DECORATIVE_RGB2_RED_CH		6
+#define DECORATIVE_RGB2_GREEN_CH	7
+#define DECORATIVE_RGB2_BLUE_CH		8
 
 #define DECORATIVE_RGB3_NUM			3
-#define DECORATIVE_RGB3_RED_CH		1
-#define DECORATIVE_RGB3_GREEN_CH	1
-#define DECORATIVE_RGB3_BLUE_CH		1
+#define DECORATIVE_RGB3_RED_CH		9
+#define DECORATIVE_RGB3_GREEN_CH	10
+#define DECORATIVE_RGB3_BLUE_CH		11
 
 #define DECORATIVE_RGB4_NUM			4
-#define DECORATIVE_RGB4_RED_CH		1
-#define DECORATIVE_RGB4_GREEN_CH	1
-#define DECORATIVE_RGB4_BLUE_CH		1
+#define DECORATIVE_RGB4_RED_CH		12
+#define DECORATIVE_RGB4_GREEN_CH	13
+#define DECORATIVE_RGB4_BLUE_CH		14
 
-
-/*
- * RGB LED Structure and Collections
- */
-//color struct
-typedef struct rgb_color_t {
-	int red; //rgb range: 0 - 255
-	int green;
-	int blue;
-} rgb_color_t;
-
-//duty cycle struct
-typedef struct rgb_duty_cyle_t {
-	float red; //%0-100%
-	float green;
-	float blue;
-} rgb_duty_cycle_t;
 
 
 //handles individual led output
 typedef struct TLC_LED_handler_t {
 	uint8_t	   		channel;
 	uint8_t 		pwm;
+	float duty_cycle;
 
 } TLC_LED_handler_t;
 
@@ -118,7 +102,6 @@ typedef struct TLC_RGB_LED_handler_t {
 	TLC_LED_handler_t red;
 	TLC_LED_handler_t green;
 	TLC_LED_handler_t blue;
-	rgb_color_t color;
 } TLC_RGB_LED_handler_t;
 
 
@@ -126,6 +109,8 @@ typedef struct TLC_RGB_LED_handler_t {
  * --------Function Declarations
  */
 void TLC_RGB_LED_InitConfigs(void);
+int TLC_RGB_LED_WasInitialized(void);
+void TLC_RGB_LED_Test(void);
 void TLC_RGB_LED_Init(int rgbnum);
 void TLC_RGB_LED_DeInit(int rgbnum);
 void TLC_RGB_LED_Reset(int rgbnum);
@@ -139,8 +124,6 @@ void TLC_RGB_LED_EnterShutdown(void);
 void TLC_RGB_LED_SetColor(int rgbnum, rgb_color_t * color);
 void TLC_RGB_LED_GetColor(int rgbnum, rgb_color_t * color);
 int TLC_RGB_LED_Round(float value);
-void TLC_RGB_LED_SetDutyCycle(rgb_duty_cycle_t * rgb_duty_cycle, int rgbnum);
-void TLC_RGB_LED_UpdateDutyCycle(int rgbnum);
 void TLC_RGB_LED_ErrorHandler(void);
 
 

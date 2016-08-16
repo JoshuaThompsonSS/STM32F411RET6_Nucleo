@@ -5,7 +5,7 @@
 
 #ifndef _FUNCTIONAL_RGB_LED_H_
 #define _FUNCTIONAL_RGB_LED_H_
-#include "rgb_led.h"
+#include "tlc_rgb_led.h"
 #include <stdbool.h>
 
 /*
@@ -253,6 +253,11 @@ void FUNCTIONAL_RGB_LED_DeInitInterruptTimer(void);
 void FUNCTIONAL_RGB_LED_StartInterruptTimer(void);
 void FUNCTIONAL_RGB_LED_StopInterruptTimer(void);
 void FUNCTIONAL_RGB_LED_SequenceHandler(void);
+
+//GPIO and CLK
+void FUNCTIONAL_RGB_LED_EnTimClk(TIM_TypeDef * TimRegx);
+void FUNCTIONAL_RGB_LED_DisTimClk(TIM_TypeDef * TimRegx);
+void FUNCTIONAL_RGB_LED_EnGpioClk(GPIO_TypeDef * port);
 
 
 #endif /* _RGB_LED_H_ */

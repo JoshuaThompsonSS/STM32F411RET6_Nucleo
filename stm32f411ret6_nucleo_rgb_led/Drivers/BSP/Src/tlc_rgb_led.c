@@ -50,6 +50,12 @@
  */
 
 //array of rgb led handlers
+typedef struct tlc_rgb_led_status_t {
+	int initialized;
+	int error;
+}tlc_rgb_led_status_t;
+
+tlc_rgb_led_status_t tlcRgbLedStatus;
 TLC_RGB_LED_handler_t RgbLedHandlers[TLC_RGB_LED_COUNT];
 
 
@@ -93,6 +99,22 @@ void TLC_RGB_LED_InitConfigs(void)
 
 }
 
+/*
+ * Note: quick led on test
+ */
+
+void TLC_RGB_LED_Test(void){
+	TLC_RGB_LED_Init(FUNC_TLC_RGB_LED_NUM);
+	rgb_color_t color = {255, 255, 255};
+	TLC_RGB_LED_SetColor(0, &color); //set all leds of rgb led 0 to full PWM ON
+}
+/*
+ * Note: Check if was already initialized
+ */
+
+int TLC_RGB_LED_WasInitialized(void){
+	return tlcRgbLedStatus.initialized;
+}
 /* ******************************************************************
 ** FUNCTION NAME: TLC_RGB_LED_Init()
  * DESCRIPTION: Initialize all RGB Led structures / timers
@@ -125,7 +147,7 @@ void TLC_RGB_LED_DeInit(int rgbnum)
 ** DESCRIPTION: Reset RGBx LED - stop pwm, configure data struct, initialize
 ** NOTE:		Does not call the TLC_RGB_LED_Start method - need to call after reset
 *********************************************************************************** */
-void TLC_RGB_LED_Reset(int rgbnum)
+void TLC_RGB_LED_Reset(rgbnum)
 {
 	TLC59116_reset(); //resets tlc 59116 led driver via i2c
 
@@ -241,21 +263,14 @@ void TLC_RGB_LED_SetColor(int rgbnum, rgb_color_t * color)
 	if(color->blue < 0){color->blue = 0;}
 	else if(color->blue > 255){color->blue = 255;}
 
-	//update RED pin of RGB LED - get the pwm duty cycle % equivalent of the 0 - 255 color value
-	rgb_duty_cycle_t rgb_duty_cycle;
-	float duty_cycle = RGB_PWM_OFFSET_RED + (color->red * RGB_TO_PWM_SCALE_RED); //ex: 240 * (100% / 255) = 94.1 % duty cycle (brightness %)
-	rgb_duty_cycle.red = duty_cycle;
+	RgbLedHandlers[rgbnum].red.pwm = color->red;
+	RgbLedHandlers[rgbnum].green.pwm = color->green;
+	RgbLedHandlers[rgbnum].blue.pwm = color->blue;
 
-	//GREEN
-	duty_cycle = RGB_PWM_OFFSET_GREEN + (color->green * RGB_TO_PWM_SCALE_GREEN);
-	rgb_duty_cycle.green = duty_cycle;
-
-	//BLUE
-	duty_cycle = RGB_PWM_OFFSET_BLUE + (color->blue * RGB_TO_PWM_SCALE_BLUE);
-	rgb_duty_cycle.blue = duty_cycle;
-
-	//update the pwm values of the rgb led channels
-	TLC_RGB_LED_SetDutyCycle(&rgb_duty_cycle, &RgbLedHandlers[rgbnum]);
+	byte pwm_values[] = {RgbLedHandlers[rgbnum].red.pwm, RgbLedHandlers[rgbnum].green.pwm, RgbLedHandlers[rgbnum].blue.pwm};
+	int start_ch = RgbLedHandlers[rgbnum].red.channel;
+	int end_ch = RgbLedHandlers[rgbnum].blue.channel;
+	TLC59116_set_outputs_from(pwm_values, start_ch, end_ch);
 
   return;
 }
@@ -273,18 +288,12 @@ void TLC_RGB_LED_GetColor(int rgbnum, rgb_color_t * color)
 		return;
 	}
 
-	//Update rgb led handler with new duty cycle / pwm values
-	TLC_RGB_LED_UpdateDutyCycle(&RgbLedHandlers[rgbnum]);
-
 	//RED - get red color rgb value 0 - 255
-	color->red = TLC_RGB_LED_Round((RgbLedHandlers[rgbnum].red.pwm - RGB_PWM_OFFSET_RED) / RGB_TO_PWM_SCALE_RED);
-	RgbLedHandlers[rgbnum].color.red = color->red;
+	color->red = RgbLedHandlers[rgbnum].red.pwm;
 	//GREEN
-	color->green = TLC_RGB_LED_Round((RgbLedHandlers[rgbnum].green.pwm - RGB_PWM_OFFSET_GREEN) / RGB_TO_PWM_SCALE_GREEN);
-	RgbLedHandlers[rgbnum].color.green = color->green;
+	color->green = RgbLedHandlers[rgbnum].green.pwm;
 	//BLUE
-	color->blue = TLC_RGB_LED_Round((RgbLedHandlers[rgbnum].blue.pwm  - RGB_PWM_OFFSET_BLUE) / RGB_TO_PWM_SCALE_BLUE);
-	RgbLedHandlers[rgbnum].color.blue = color->blue;
+	color->blue = RgbLedHandlers[rgbnum].blue.pwm;
 
   return;
 }
@@ -311,37 +320,6 @@ int TLC_RGB_LED_Round(float value){
 	}
 }
 
-
-/* ********************************************************************************
-** FUNCTION NAME: TLC_RGB_LED_SetDutyCycle()
-** DESCRIPTION: Updates the Duty Cycle /  Pulse value of the pwm used in the timer capture / compare register
-** 				This essentially changed the voltage that the LED pin sees therefore changing the color of the entire rgb led
-** 				Ex: if duty cycle is 50% then voltage seen by pin is 50% of VCC
-** NOTE:		Might need to only allow this during certain interrupt periods ... blocking?
-** 			    TLC_RGB_LED_SetColor calls this function
- *
-*********************************************************************************** */
-void TLC_RGB_LED_SetDutyCycle(rgb_duty_cycle_t * rgb_duty_cycle, int rgbnum){
-
-	//TODO: ?
-
-}
-
-/* ********************************************************************************
-** FUNCTION NAME: TLC_RGB_LED_UpdateDutyCycle()
-** DESCRIPTION: Read the Duty Cycle /  Pulse value of the pwm used for a single color on the RGB LED
-**
-** NOTE:		TLC_RGB_LED_GetColor calls this function
- *
-*********************************************************************************** */
-void TLC_RGB_LED_UpdateDutyCycle(int rgbnum){
-	float duty_cycle_percent;
-	//TODO: update pwm values of rgb led handler
-	return ;
-
-	//TODO: maybe return OK or ERROR boolean status? for example is duty cycle is not valid?
-
-}
 
 /* ********************************************************************************
 ** FUNCTION NAME: TLC_RGB_LED_ErrorHandler()

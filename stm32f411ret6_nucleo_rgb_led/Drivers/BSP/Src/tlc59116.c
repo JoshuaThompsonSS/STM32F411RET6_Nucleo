@@ -29,7 +29,6 @@ int TLC59116_i2c_write(unsigned char addr, unsigned char *buffer, int length){
 }
 int TLC59116_i2c_scan(void){
 	  //Don't send any data just see if dev responds when you request a write
-	  uint8_t data[] = {0};
 	  if(HAL_I2C_Master_Transmit(&hi2c1, TLC59116BaseAddr, NULL, 0, 0xFFFF) != HAL_OK){
 		  return 0;
 	  }
@@ -302,8 +301,8 @@ void TLC59116_enable_pwm_output(int led_num){
 	int ledBank = TLC59116_get_led_bank_from_ch(led_num);
 	int bankLedNum = led_num % Led_Banks;
 	if(ledBank >=0 && ledBank < Led_Banks){
-		byte mask = LEDOUT_PWM<<(bankLedNum*2);
-		byte new_bits = mask;
+		byte mask = LEDOUT_Mask<<(bankLedNum*2);
+		byte new_bits = LEDOUT_PWM<<(bankLedNum*2);
 		byte led_out_bank = TLC59116_set_with_mask(tlcHandler.ledout[ledBank].value, mask, new_bits);
 		TLC59116_modify_register(&tlcHandler.ledout[ledBank], led_out_bank); //update register handler
 		TLC59116_set_register(&tlcHandler.ledout[ledBank]); //send to device via i2c
@@ -319,7 +318,7 @@ void TLC59116_disable_pwm_output(int led_num){
 	int bankLedNum = led_num % Led_Banks;
 	if(ledBank >=0 && ledBank < Led_Banks){
 		byte mask = LEDOUT_Mask<<(bankLedNum*2);
-		byte new_bits = LEDOUT_DigitalOff;
+		byte new_bits = LEDOUT_DigitalOff<<(bankLedNum*2);
 		byte led_out_bank = TLC59116_set_with_mask(tlcHandler.ledout[ledBank].value, mask, new_bits);
 		TLC59116_modify_register(&tlcHandler.ledout[ledBank], led_out_bank); //update register handler
 		TLC59116_set_register(&tlcHandler.ledout[ledBank]); //send to device via i2c
@@ -346,8 +345,9 @@ void TLC59116_set_outputs(byte pwm_values[]){
 }
 
 void TLC59116_set_outputs_from(byte pwm_values[], int start_ch, int end_ch){
+	int n = 0;
 	for(int i = start_ch; i<=end_ch; i++){
-		TLC59116_modify_register(&tlcHandler.pwm[i], pwm_values[i]); //this just updates the pwm handler values
+		TLC59116_modify_register(&tlcHandler.pwm[i], pwm_values[n++]); //this just updates the pwm handler values
 	}
 	TLC59116_set_pwm_registers_from(start_ch, end_ch); //after modifying pwm handler values structure send to device via i2c
 	return ;
@@ -421,13 +421,17 @@ void TLC59116_set_pwm_registers(void){
 
 void TLC59116_set_pwm_registers_from(int start_ch, int end_ch){
 	byte buffer[Channels+1];
-	if(start_ch > end_ch){return;}
+	if(start_ch > end_ch)
+	{
+		return;
+	}
 
 	buffer[0] = tlcHandler.pwm[start_ch].address | Auto_PWM; //tell device to auto write increment pwm register only
-	for(int i = 0; i<=end_ch; i++){
+	int len = end_ch - start_ch + 1;
+	for(int i = 0; i<len; i++){
 		buffer[1+i] = tlcHandler.pwm[start_ch+i].value;
 	}
-	TLC59116_blockWrite(buffer, end_ch - start_ch + 2); //update control register setting
+	TLC59116_blockWrite(buffer, len+1); //update control register setting
 }
 
 

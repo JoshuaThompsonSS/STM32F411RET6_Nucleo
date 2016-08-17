@@ -540,14 +540,20 @@ int main(void)
 
   InitRGBCmd();
   int count = 0;
+  int en =1;
   while (1)
   {
+
 	  wait_sec(1);
 	  count++;
-	  if(count == 5){
+	  if(count == 5 && en){
 		  FUNCTIONAL_RGB_LED_StopService();
+		  FUNCTIONAL_RGB_LED_StartService(DECORATIVE_RGB1_NUM);
+		  FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CHARGING);
 		  count = 100;
+		  en = 0;
 	  }
+
 
   }
 

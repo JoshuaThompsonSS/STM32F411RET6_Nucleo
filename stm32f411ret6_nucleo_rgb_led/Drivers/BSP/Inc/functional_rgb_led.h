@@ -133,6 +133,7 @@ typedef struct rgb_led_sequence_t {
 //rgb led handle
 typedef struct rgb_led_handle_t {
 	bool enabled;
+	int rgb_led_num;
 	void (*set_color)();
 	void (*get_color)();
 	void (*get_color_diff)();
@@ -198,9 +199,9 @@ void FUNCTIONAL_RGB_LED_InitCmdLine(void);
 void FUNCTIONAL_RGB_LED_LoadSequence(rgb_seq_type_t seqType);
 bool FUNCTIONAL_RGB_LED_isRunning(void);
 void FUNCTIONAL_RGB_LED_ErrorHandler(void);
-void FUNCTIONAL_RGB_LED_StartService(void);
+void FUNCTIONAL_RGB_LED_StartService(int rgb_led_num);
 void FUNCTIONAL_RGB_LED_StopService(void);
-void FUNCTIONAL_RGB_LED_InitHandle(void);
+void FUNCTIONAL_RGB_LED_InitHandle(int rgb_led_num);
 void FUNCTIONAL_RGB_LED_InitSequences(void);
 void FUNCTIONAL_RGB_LED_Init(void);
 void FUNCTIONAL_RGB_LED_DeInit(void);

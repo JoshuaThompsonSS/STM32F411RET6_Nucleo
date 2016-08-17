@@ -251,13 +251,21 @@ void TLC59116_start(){
 }
 
 /*
- * Note: starts all leds
+ * Note: start specific led
  */
 void TLC59116_start_led(int ch){
 	int en = 1; //enable
 	int timeout = 0;
 	TLC59116_enable_outputs(en, timeout);
 	TLC59116_enable_pwm_output(ch);
+}
+
+/*
+ * Note: stop specific led
+ */
+void TLC59116_stop_led(int ch){
+
+	TLC59116_disable_pwm_output(ch);
 }
 
 /*
@@ -296,6 +304,22 @@ void TLC59116_enable_pwm_output(int led_num){
 	if(ledBank >=0 && ledBank < Led_Banks){
 		byte mask = LEDOUT_PWM<<(bankLedNum*2);
 		byte new_bits = mask;
+		byte led_out_bank = TLC59116_set_with_mask(tlcHandler.ledout[ledBank].value, mask, new_bits);
+		TLC59116_modify_register(&tlcHandler.ledout[ledBank], led_out_bank); //update register handler
+		TLC59116_set_register(&tlcHandler.ledout[ledBank]); //send to device via i2c
+	}
+}
+
+/*
+ * Note: Disables leds from being controlled by pwm registers
+ *       - bankLedNum 0, 1, 2 or 3
+ */
+void TLC59116_disable_pwm_output(int led_num){
+	int ledBank = TLC59116_get_led_bank_from_ch(led_num);
+	int bankLedNum = led_num % Led_Banks;
+	if(ledBank >=0 && ledBank < Led_Banks){
+		byte mask = LEDOUT_Mask<<(bankLedNum*2);
+		byte new_bits = LEDOUT_DigitalOff;
 		byte led_out_bank = TLC59116_set_with_mask(tlcHandler.ledout[ledBank].value, mask, new_bits);
 		TLC59116_modify_register(&tlcHandler.ledout[ledBank], led_out_bank); //update register handler
 		TLC59116_set_register(&tlcHandler.ledout[ledBank]); //send to device via i2c

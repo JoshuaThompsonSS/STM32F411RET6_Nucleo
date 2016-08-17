@@ -121,12 +121,12 @@ void FUNCTIONAL_RGB_LED_InitCmdLine(void){
 ** NOTE:
  *
 *********************************************************************************** */
-void FUNCTIONAL_RGB_LED_StartService(void){
+void FUNCTIONAL_RGB_LED_StartService(int rgb_led_num){
 	//Cmd line testing
 
 	FUNCTIONAL_RGB_LED_InitCmdLine();
 	//init rgb led driver handle (rgbHandle)
-	FUNCTIONAL_RGB_LED_InitHandle();
+	FUNCTIONAL_RGB_LED_InitHandle(rgb_led_num);
 	//init all the common functional rgb led sequences
 	FUNCTIONAL_RGB_LED_InitSequences();
 	//init driver
@@ -181,8 +181,9 @@ void FUNCTIONAL_RGB_LED_StopService(void){
 ** NOTE:
  *
 *********************************************************************************** */
-void FUNCTIONAL_RGB_LED_InitHandle(void){
+void FUNCTIONAL_RGB_LED_InitHandle(int rgb_led_num){
 	//rgb driver handler
+	rgbHandle.rgb_led_num = rgb_led_num;
 	rgbHandle.init = FUNCTIONAL_RGB_LED_Init;
 	rgbHandle.de_init = FUNCTIONAL_RGB_LED_DeInit;
 	rgbHandle.start = FUNCTIONAL_RGB_LED_Start;
@@ -274,7 +275,7 @@ void FUNCTIONAL_RGB_LED_InitSequences(void){
  *
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Init(void){
-	TLC_RGB_LED_Init(FUNC_TLC_RGB_LED_NUM);
+	TLC_RGB_LED_Init(rgbHandle.rgb_led_num);
 	return;
 }
 
@@ -287,27 +288,27 @@ void FUNCTIONAL_RGB_LED_Init(void){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Start(void)
 {
-	TLC_RGB_LED_Start(FUNC_TLC_RGB_LED_NUM);
+	TLC_RGB_LED_Start(rgbHandle.rgb_led_num);
 	return;
 }
 void FUNCTIONAL_RGB_LED_Stop(void){
-	TLC_RGB_LED_Stop(FUNC_TLC_RGB_LED_NUM);
+	TLC_RGB_LED_Stop(rgbHandle.rgb_led_num);
 	return;
 }
 void FUNCTIONAL_RGB_LED_DeInit(void){
-	TLC_RGB_LED_DeInit(FUNC_TLC_RGB_LED_NUM);
+	TLC_RGB_LED_DeInit(rgbHandle.rgb_led_num);
 	return;
 }
 void FUNCTIONAL_RGB_LED_Reset(void){
-	TLC_RGB_LED_Reset(FUNC_TLC_RGB_LED_NUM);
+	TLC_RGB_LED_Reset(rgbHandle.rgb_led_num);
 	return;
 }
 void FUNCTIONAL_RGB_LED_SetColor(rgb_color_t * color){
-	TLC_RGB_LED_SetColor(FUNC_TLC_RGB_LED_NUM, color);
+	TLC_RGB_LED_SetColor(rgbHandle.rgb_led_num, color);
 	return;
 }
 void FUNCTIONAL_RGB_LED_GetColor(rgb_color_t * color){
-	TLC_RGB_LED_GetColor(FUNC_TLC_RGB_LED_NUM, color);
+	TLC_RGB_LED_GetColor(rgbHandle.rgb_led_num, color);
 	return;
 }
 void FUNCTIONAL_RGB_LED_GetColorDiff(rgb_color_t * color1, rgb_color_t * color2, rgb_color_t * colorDelta){
@@ -912,7 +913,7 @@ void FUNCTIONAL_RGB_LED_GetColorScales(rgb_led_step_t * step){
 *********************************************************************************** */
 void FUNCTIONAL_RGB_LED_Ramp(rgb_led_step_t * step){
 
-	TLC_RGB_LED_GetColor(FUNC_TLC_RGB_LED_NUM, &step->color);
+	TLC_RGB_LED_GetColor(rgbHandle.rgb_led_num, &step->color);
 	rgb_color_t dlta_clr;
 
 	if(step->time <= 0){

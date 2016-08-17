@@ -539,10 +539,15 @@ int main(void)
   //TLC_RGB_LED_Test();
 
   InitRGBCmd();
-
+  int count = 0;
   while (1)
   {
-
+	  wait_sec(1);
+	  count++;
+	  if(count == 5){
+		  FUNCTIONAL_RGB_LED_StopService();
+		  count = 100;
+	  }
 
   }
 
@@ -568,7 +573,7 @@ void StopRedLed(void){
 
 //Init rgb led seq and cmdline
 void InitRGBCmd(void){
-	FUNCTIONAL_RGB_LED_StartService();
+	FUNCTIONAL_RGB_LED_StartService(FUNCTIONAL_RGB_NUM);
 	 //Init_USART();
 	 rgbHandle.enabled = true;
 	 FUNCTIONAL_RGB_LED_LoadSequence(RGBSEQ_CHARGING);

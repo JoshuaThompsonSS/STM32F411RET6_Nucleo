@@ -35,7 +35,6 @@
  */
 
 #define TLC_RGB_LED_COUNT	5 //there are currently 5 rgb leds connected to the TLC59116 led driver
-#define FUNC_TLC_RGB_LED_NUM	0 //functional RGB LED number
 //#define DEC_TLC_RGB_LED_NUM		1 //decorative RGB LED number
 
 /* LED PINS

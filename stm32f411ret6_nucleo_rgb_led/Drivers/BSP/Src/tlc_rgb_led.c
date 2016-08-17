@@ -104,7 +104,7 @@ void TLC_RGB_LED_InitConfigs(void)
  */
 
 void TLC_RGB_LED_Test(void){
-	TLC_RGB_LED_Init(FUNC_TLC_RGB_LED_NUM);
+	TLC_RGB_LED_Init(FUNCTIONAL_RGB_NUM);
 	rgb_color_t color = {255, 255, 255};
 	TLC_RGB_LED_SetColor(0, &color); //set all leds of rgb led 0 to full PWM ON
 }
@@ -149,6 +149,7 @@ void TLC_RGB_LED_DeInit(int rgbnum)
 *********************************************************************************** */
 void TLC_RGB_LED_Reset(int rgbnum)
 {
+	//rests all leds
 	TLC59116_reset(); //resets tlc 59116 led driver via i2c
 
   return;
@@ -162,7 +163,7 @@ void TLC_RGB_LED_Reset(int rgbnum)
 *********************************************************************************** */
 void TLC_RGB_LED_Start(int rgbnum)
 {
-	//TODO: currently led outputs already enabled in the tlc59116 init
+	//enables specified leds to be controlled by pwm output
 	int redch = RgbLedHandlers[rgbnum].red.channel;
 	int greench = RgbLedHandlers[rgbnum].green.channel;
 	int bluech = RgbLedHandlers[rgbnum].blue.channel;
@@ -171,15 +172,6 @@ void TLC_RGB_LED_Start(int rgbnum)
 	TLC59116_start_led(bluech);
 }
 
-/* ********************************************************************************
-** FUNCTION NAME: TLC_RGB_LED_StartLED()
-** DESCRIPTION: Initialize individual LED TIM Handler and PWM Config structures
-** NOTE:		None.
-*********************************************************************************** */
-void TLC_RGB_LED_StartLED(int rgbnum){
-	//Activate outputs for specific rgb led
-	//TODO: ?
-}
 
 /* ********************************************************************************
 ** FUNCTION NAME: TLC_RGB_LED_Stop()
@@ -189,23 +181,17 @@ void TLC_RGB_LED_StartLED(int rgbnum){
 *********************************************************************************** */
 void TLC_RGB_LED_Stop(int rgbnum)
 {
-	//TODO: ?
+	//disables leds / turns them off and prevents from being controlled by pwm
+	int redch = RgbLedHandlers[rgbnum].red.channel;
+	int greench = RgbLedHandlers[rgbnum].green.channel;
+	int bluech = RgbLedHandlers[rgbnum].blue.channel;
+	TLC59116_stop_led(redch);
+	TLC59116_stop_led(greench);
+	TLC59116_stop_led(bluech);
 
   return;
 }
 
-/* ********************************************************************************
-** FUNCTION NAME: TLC_RGB_LED_StopLED()
-** DESCRIPTION: Stop the PWM generation for a rgb led ( 3 leds)
-** NOTE:		None.
- *
-*********************************************************************************** */
-void TLC_RGB_LED_StopLED(int rgbnum)
-{
-	//TODO: ?
-
-  return;
-}
 
 
 /* ********************************************************************************

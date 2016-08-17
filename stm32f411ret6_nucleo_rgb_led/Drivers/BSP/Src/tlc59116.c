@@ -69,10 +69,11 @@ void TLC59116_error(void)
 	//TODO: ?
 }
 
-void TLC59116_setPWM(int duty_cycle_percent, int channel){
-	//TODO: ?
+int TLC59116_get_led_bank_from_ch(int ch){
+	int bank_ch = ch%4;
+	int bank_num = (ch - bank_ch)/Led_Banks;
+	return bank_num;
 }
-
 /************************ TLC59116 Generic Functions ******************************/
 void TLC59116_init_register_controller(void){
 	tlcHandler.initialized = 1;
@@ -233,11 +234,30 @@ int TLC59116_reset(void){
 	}
 
 	//Reset worked so disable outputs
-	int en = 1;
+	int en = 0; //disable
+	int timeout = 0;
+	TLC59116_enable_outputs(en, timeout);
+	return rez;
+}
+
+/*
+ * Note: starts all leds
+ */
+void TLC59116_start(){
+	int en = 1; //enable
 	int timeout = 0;
 	TLC59116_enable_outputs(en, timeout);
 	TLC59116_enable_pwm_outputs();
-	return rez;
+}
+
+/*
+ * Note: starts all leds
+ */
+void TLC59116_start_led(int ch){
+	int en = 1; //enable
+	int timeout = 0;
+	TLC59116_enable_outputs(en, timeout);
+	TLC59116_enable_pwm_output(ch);
 }
 
 /*
@@ -263,6 +283,22 @@ void TLC59116_enable_pwm_outputs(void){
 	for(int i = 0; i<4; i++){
 		TLC59116_modify_register(&tlcHandler.ledout[i], LEDOUT_PWM_ALL); //update register handler
 		TLC59116_set_register(&tlcHandler.ledout[i]); //send to device via i2c
+	}
+}
+
+/*
+ * Note: Enables leds to be controlled by pwm registers
+ *       - bankLedNum 0, 1, 2 or 3
+ */
+void TLC59116_enable_pwm_output(int led_num){
+	int ledBank = TLC59116_get_led_bank_from_ch(led_num);
+	int bankLedNum = led_num % Led_Banks;
+	if(ledBank >=0 && ledBank < Led_Banks){
+		byte mask = LEDOUT_PWM<<(bankLedNum*2);
+		byte new_bits = mask;
+		byte led_out_bank = TLC59116_set_with_mask(tlcHandler.ledout[ledBank].value, mask, new_bits);
+		TLC59116_modify_register(&tlcHandler.ledout[ledBank], led_out_bank); //update register handler
+		TLC59116_set_register(&tlcHandler.ledout[ledBank]); //send to device via i2c
 	}
 }
 
@@ -341,7 +377,7 @@ void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bi
 void TLC59116_set_register(tlc59116_register_t * reg) {
 	//TODO: make sure valid control register
 	unsigned char buffer[2];
-	buffer[0] = NO_AUTO_INCREMENT + reg->address;
+	buffer[0] = Auto_None+ reg->address;
 	buffer[1] = reg->value;
 	TLC59116_blockWrite(buffer, 2); //update control register setting
 	return ;
@@ -370,99 +406,6 @@ void TLC59116_set_pwm_registers_from(int start_ch, int end_ch){
 	TLC59116_blockWrite(buffer, end_ch - start_ch + 2); //update control register setting
 }
 
-/*
- * Note: simple test rgb led sequence
- */
-void TLC59116_test(void){
-	TLC59116_test_init();
-	while(1){
-	TLC59116_test_loop();
-	}
-
-}
-
-void TLC59116_test_init(void){
-	// Transmit to the TLC59116
-	byte buffer[100];
-
-	  // Send the control register.  All registers will be written to, starting at register 0
-	  buffer[0] = AUTO_INCREMENT_ALL_REGISTERS;
-	  // Set MODE1: no sub-addressing
-	  buffer[1] = 0;
-	  // Set MODE2: dimming
-	  buffer[2] = 0;
-	  // Set individual brightness control to maximum
-	  int i = 0;
-	  for (i=0; i< 16; i++){
-		  buffer[3+i] = 0xFF;
-	  }
-	  // Set GRPPWM: Full brightness
-	  buffer[3+i] = 0xFF;
-	  // Set GRPFREQ: Not blinking, must be 0
-	  buffer[3+i+1] = 0;
-	  int k = 3+i+1;
-	  // Set LEDs off for now
-	  for (i=0; i< 4; i++){
-		 buffer[k+i] = 0;
-	  }
-	  int len = k+i;
-	  // Set the I2C all-call and sub addresses (if needed)
-	  TLC59116_blockWrite(buffer, len);
-	  HAL_Delay(100);
-}
-
-// Turn the LEDs on or off.  LEDs is a 16-bit int corresponding to OUT0 (LSB) to OUT15 (MSB)
-void TLC59116_test_setLEDs(int LEDs)
-{
-
-  // Write to consecutive registers, starting with LEDOUT0
-  byte buffer[5];
-  for(int i = 0; i<4; i++){
-	  buffer[0] = NO_AUTO_INCREMENT + TLC59116_LEDOUT0 + i;
-  	  buffer[1] = 0b10101010;
-  	  TLC59116_blockWrite(buffer, 2);
-  }
-}
-
-
-// Set the brightness from 0 to 0xFF
-void TLC59116_test_setBrightness(int brightness)
-{
-  // Write to the GRPPWM register
-  byte buffer[Channels+1];
-  buffer[0] = AUTO_INCREMENT_BRIGHTNESS + PWM0_Register; //NO_AUTO_INCREMENT + TLC59116_GRPPWM;
-  for(int i = 0; i<Channels; i++){
-	  buffer[1+i] = 2*i*brightness;
-  }
-  TLC59116_blockWrite(buffer, Channels+1);
-}
-
-void TLC59116_test_loop(void)
-{
-  // Loop through LEDs from 0 to 15
-	TLC59116_test_setLEDs(1);
-
-	for(int i = 0; i<Channels; i++){
-		TLC59116_test_setBrightness(i);
-		HAL_Delay(100);
-	}
-    HAL_Delay(1000);
-    TLC59116_test_setBrightness(0x00);
-    HAL_Delay(1000);
-
-
-    /*
-  // Light all LEDs off
-  TLC59116_test_setLEDs(0);
-  for (int i=255; i > 0; i--) {
-	TLC59116_test_setBrightness(i);
-    HAL_Delay(20);
-  }
-  HAL_Delay(1000);
-  TLC59116_test_setLEDs(0);
-  TLC59116_test_setBrightness(0xFF);
-  */
-}
 
 
 

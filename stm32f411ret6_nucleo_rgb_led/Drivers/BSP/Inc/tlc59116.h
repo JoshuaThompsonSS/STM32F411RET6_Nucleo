@@ -8,34 +8,11 @@
 #include "stm32f4xx_hal.h"
 #include "i2c.h"
 #include <stdlib.h>
-/********************************Test Define *****************************/
-// I2C bus addresses (excludes the R/W bit)
-#define ADDRESS                        0b11000000  // Assumes A0 to A3 are connected to ground
-#define ALLCALL_ADDRESS                0b11010000
-#define RESET_ADDRESS                  0b11010110
-
-// I2C R/W
-#define I2C_READ                       1
-#define I2C_WRITE                      0
-
-// Control register (three MSB control auto-increment)
-#define NO_AUTO_INCREMENT              0b00000000
-#define AUTO_INCREMENT_ALL_REGISTERS   0b10000000
-#define AUTO_INCREMENT_BRIGHTNESS      0b10100000
-#define AUTO_INCREMENT_CONTROL         0b11000000
-#define AUTO_INCREMENT_BRIGHT_CONTROL  0b11100000
-
-// TLC59116 registers
-#define TLC59116_GRPPWM                (0x12)
-#define TLC59116_LEDOUT0               (0x14)
-
-// LED output state for LEDOUT0 to LEDOUT3
-#define LED_OUTPUT_OFF                 0b00
-#define LED_OUTPUT_GROUP               0b11
 
 /********************************Define***********************************/
 #define TLC59116BaseAddr					(0x60<<1) // 0b110xxxx0 device address with write bit 0
 #define Channels							16
+#define Led_Banks							4
 #define Control_Register_Max				(0x1E<<1) // NB, no 0x1F !
 #define Control_Register_Min				0
 /********************************Typedef**********************************/
@@ -78,6 +55,7 @@ static const byte Max_Addr = 				TLC59116BaseAddr + (0xF<<1);   // 14 typically 
 
 // Auto-increment mode bits
 // default is Auto_none, same register can be written to multiple times
+static const byte Auto_None	=				0b00000000; //no auto increment
 static const byte Auto_All = 				0b10000000; // 0..Control_Register_Max
 static const byte Auto_PWM = 				0b10100000; // PWM0_Register .. (Channels-1)
 static const byte Auto_GRP = 				0b11000000; // GRPPWM..GRPFREQ
@@ -147,13 +125,17 @@ void TLC59116_error(void);
 void TLC59116_init_register_controller(void);
 void TLC59116_reset_shadow_registers(void);
 byte TLC59116_set_with_mask(byte was, byte mask, byte new_bits);
+int TLC59116_get_led_bank_from_ch(int ch);
 
 // Control Function below based on TLC59116 Datasheet standard data commands for TLC59116
 int TLC59116_scan(void);
 int TLC59116_init(void);
+void TLC59116_start(void);
+void TLC59116_start_led(int ch);
 int TLC59116_reset(void);
 void TLC59116_enable_outputs(int yes, int with_delay);
 void TLC59116_enable_pwm_outputs(void);
+void TLC59116_enable_pwm_output(int led_num);
 void TLC59116_set_output(tlc59116_register_t * ledPwmReg, byte pwm);
 void TLC59116_set_outputs(byte pwm_values[]);
 void TLC59116_set_outputs_from(byte pwm_values[], int start_ch, int end_ch);
@@ -165,11 +147,6 @@ void TLC59116_modify_register_bits(tlc59116_register_t * reg, byte mask, byte bi
 void TLC59116_set_register(tlc59116_register_t * reg);
 void TLC59116_set_pwm_registers(void);
 void TLC59116_set_pwm_registers_from(int start_ch, int end_ch);
-void TLC59116_test(void);
-void TLC59116_test_init(void);
-void TLC59116_test_loop(void);
-void TLC59116_test_setBrightness(int brightness);
-void TLC59116_test_setLEDs(int LEDs);
 
 #endif //TLC59116_h
 

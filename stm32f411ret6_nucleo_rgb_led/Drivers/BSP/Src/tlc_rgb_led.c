@@ -147,7 +147,7 @@ void TLC_RGB_LED_DeInit(int rgbnum)
 ** DESCRIPTION: Reset RGBx LED - stop pwm, configure data struct, initialize
 ** NOTE:		Does not call the TLC_RGB_LED_Start method - need to call after reset
 *********************************************************************************** */
-void TLC_RGB_LED_Reset(rgbnum)
+void TLC_RGB_LED_Reset(int rgbnum)
 {
 	TLC59116_reset(); //resets tlc 59116 led driver via i2c
 
@@ -163,6 +163,12 @@ void TLC_RGB_LED_Reset(rgbnum)
 void TLC_RGB_LED_Start(int rgbnum)
 {
 	//TODO: currently led outputs already enabled in the tlc59116 init
+	int redch = RgbLedHandlers[rgbnum].red.channel;
+	int greench = RgbLedHandlers[rgbnum].green.channel;
+	int bluech = RgbLedHandlers[rgbnum].blue.channel;
+	TLC59116_start_led(redch);
+	TLC59116_start_led(greench);
+	TLC59116_start_led(bluech);
 }
 
 /* ********************************************************************************
